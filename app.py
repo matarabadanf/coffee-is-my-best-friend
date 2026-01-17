@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime
 
 # 1. Setup Page Configuration
-st.set_page_config(page_title="Coffee is my best friend", page_icon="☕")
+st.set_page_config(page_title="Coffee is my best friend", page_icon=":coffee:")
 
 # Custom CSS for Soft Beige Background
 st.markdown(
@@ -14,9 +14,18 @@ st.markdown(
         background-color: #F9F3E3; /* Soft Beige / Cream */
         color: #4A3B32; /* Coffee-ish text color for contrast */
     }
+    
+    /* Tea Button Style */
+    .stButton > button:first-child {
+         border-radius: 20px;
+    }
+    
     /* Optional: Style metrics to look good on beige */
-    div[data-testid="stMetricValue"] {
-        color: #2C1A11;
+    /* Force all text inside metrics to be black */
+    [data-testid="stMetricValue"],
+    [data-testid="stMetricLabel"],
+    [data-testid="stMetricLabel"] p {
+        color: #000000 !important;
     }
     
     /* Style buttons to look like coffee beans */
@@ -69,7 +78,7 @@ def get_supabase_client() -> Client:
 supabase = get_supabase_client()
 
 # 3. Application Logic
-st.title("Coffee is my best friend ☕")
+st.title("Coffee is my best friend :coffee:")
 st.write("Yes. This is actually happening.")
 st.write("Once Cris said:")
 st.markdown('### "Dios no creo que oiga una frikada mayor de lo que acabo de oir."')
@@ -113,74 +122,146 @@ def get_data():
 
 data = get_data()
 
-# 5. Calculate Scores
+# 5. Calculate Scores (Independent)
 if data:
     df = pd.DataFrame(data)
-    scores = df.groupby("user_name")["value"].sum().to_dict()
+    
+    # Ensure drink_id exists (fill with 1 for Coffee if missing)
+    if "drink_id" not in df.columns:
+        df["drink_id"] = 1
+    else:
+        df["drink_id"] = df["drink_id"].fillna(1)
+    
+    
+    # 2. Convert timestamps immediately (before splitting)
+    # This prevents the "AttributeError: Can only use .dt accessor" later
+    if not df.empty and "created_at" in df.columns:
+        df["created_at"] = pd.to_datetime(df["created_at"])
+    
+    # Separate Dataframes
+    df_coffee = df[df["drink_id"] == 1]
+    df_tea = df[df["drink_id"] == 2]
+    
+    # Calculate Scores
+    coffee_scores = df_coffee.groupby("user_name")["value"].sum().to_dict()
+    tea_scores = df_tea.groupby("user_name")["value"].sum().to_dict()
 else:
-    scores = {}
-    df = pd.DataFrame() # Ensure df exists for history check later
+    coffee_scores = {}
+    tea_scores = {}
+    df = pd.DataFrame() 
+    df_coffee = pd.DataFrame()
+    df_tea = pd.DataFrame()
 
 # 6. Display Scores & Actions
 st.header("Coffee Counter in 2026:")
 cols = st.columns(len(users))
 
 # Pre-process timestamps if data exists
-if not df.empty:
-    df["created_at"] = pd.to_datetime(df["created_at"])
+# (Moved up to Step 5)
 
 for idx, user in enumerate(users):
-    score = scores.get(user, 0)
+    c_score = coffee_scores.get(user, 0)
+    t_score = tea_scores.get(user, 0)
+    
     with cols[idx]:
-        st.metric(label=user, value=score)
+        # --- Coffee Section ---
+        st.metric(label=f"{user} (Coffee) :coffee:", value=c_score)
         
-        # Check cooldown state
+        # Check cooldown state (Global cooldown)
         last_click_time = None
         if not df.empty:
             user_clicks = df[df["user_name"] == user]
             if not user_clicks.empty:
                 last_click_time = user_clicks["created_at"].max()
 
-        # Individual Button for each user
-        if st.button(f"{user} took a coffee ☕", key=f"btn_{user}", use_container_width=True):
+        # Coffee Button
+        if st.button(f"{user} took a coffee :coffee:", key=f"btn_coffee_{user}", use_container_width=True):
             # Cooldown Logic
             if last_click_time:
-                # Calculate time since last click (aware of timezones)
                 now = pd.Timestamp.now(tz=last_click_time.tz)
                 time_diff = (now - last_click_time).total_seconds()
-                
                 if time_diff < 60:
                     st.warning(f"Wait {int(60 - time_diff)}s before adding another!")
-                    st.stop() # Stop execution here so we don't insert
+                    st.stop()
 
+            # Coffee = 1
             event_data = {
                 "user_name": user,
-                "value": 1
+                "value": 1,
+                "drink_id": 1 # 1 for Coffee
             }
             try:
                 supabase.table("clicks").insert(event_data).execute()
-                st.success("Counted!")
+                st.success("Coffee Counted!")
                 st.rerun()
             except Exception as e:
-                st.error(f"Error: {e}")
+                err_msg = str(e)
+                if "Could not find the 'drink_id' column" in err_msg:
+                    st.error("🚨 **Database Update Required** 🚨")
+                    st.warning("To support tracking, you need to add a column to your Supabase table.")
+                    st.info("Go to Supabase -> Table Editor -> `clicks` -> Add Column:\n- **Name**: `drink_id`\n- **Type**: `int` (or number)\n- **Default Value**: `1`")
+                else:
+                    st.error(f"Error: {e}")
+
+        # --- Tea Section ---
+        st.metric(label=f"{user} (Tea) 🍵", value=t_score)
+
+        # Tea Button
+        if st.button(f"{user} took a tea 🍵", key=f"btn_tea_{user}", use_container_width=True):
+             # Cooldown Logic
+            if last_click_time:
+                now = pd.Timestamp.now(tz=last_click_time.tz)
+                time_diff = (now - last_click_time).total_seconds()
+                if time_diff < 60:
+                    st.warning(f"Wait {int(60 - time_diff)}s before adding another!")
+                    st.stop()
+            
+            # Tea = 1
+            event_data = {
+                "user_name": user,
+                "value": 1,
+                "drink_id": 2 # 2 for Tea
+            }
+            try:
+                supabase.table("clicks").insert(event_data).execute()
+                st.success("Tea Counted!")
+                st.rerun()
+            except Exception as e:
+                err_msg = str(e)
+                if "Could not find the 'drink_id' column" in err_msg or "PGRST204" in err_msg:
+                    st.error("🚨 **Database Update Required** 🚨")
+                    st.warning("To support Tea tracking, you need to add a column to your Supabase table.")
+                    st.info("Go to Supabase -> Table Editor -> `clicks` -> Add Column:\n- **Name**: `drink_id`\n- **Type**: `int` (or number)\n- **Default Value**: `1`")
+                else:
+                    st.error(f"Error: {e}")
 
 # Total Count Display
-total_coffees = sum(scores.values())
-st.markdown(f"<h2 style='text-align: center; color: #4A3B32;'>Yay! That adds up to {total_coffees} coffees ☕</h2>", unsafe_allow_html=True)
+total_coffees = sum(coffee_scores.values())
+total_teas = sum(tea_scores.values())
+st.markdown(f"<h3 style='text-align: center; color: #4A3B32;'>Totals: {total_coffees} Coffees :coffee: | {total_teas} Teas 🍵</h3>", unsafe_allow_html=True)
 st.divider()
 
 # Analytics Section
 st.header("Coffee Analytics 📈")
 
-if not df.empty:
+if not df_coffee.empty:
     # --- Pie Chart Section ---
-    st.subheader("Total Share 🍰")
+    st.subheader("Coffee Share 🍰")
     
     # Prepare data for Pie Chart
-    # scores is already a dict {user: value}, convert to DF
-    pie_df = pd.DataFrame(list(scores.items()), columns=['Coffee friend', 'Coffees'])
+    # Add Bea(tea) as requested
+    pie_data = coffee_scores.copy()
+    if "Bea" in tea_scores:
+        pie_data["Bea(tea)"] = tea_scores["Bea"]
+
+    pie_df = pd.DataFrame(list(pie_data.items()), columns=['Coffee friend', 'Coffees'])
     pie_df['Percentage'] = pie_df['Coffees'] / pie_df['Coffees'].sum()
     
+    # --- Color Configuration ---
+    # Define custom colors
+    domain = ["Cris", "Bea", "Fer", "Bea(tea)"]
+    range_ = ["#1f77b4", "#ff7f0e", "rebeccapurple", "#2ca02c"] # Blue, Orange, RebeccaPurple, Green
+
     import altair as alt
     
     # Base chart
@@ -190,7 +271,7 @@ if not df.empty:
     
     # Pie slices
     pie = base.mark_arc(outerRadius=100).encode(
-        color=alt.Color("Coffee friend", scale=alt.Scale(scheme='category10')),
+        color=alt.Color("Coffee friend", scale=alt.Scale(domain=domain, range=range_)),
         order=alt.Order("Coffees", sort="descending"),
         tooltip=["Coffee friend", "Coffees", alt.Tooltip("Percentage", format=".1%")]
     )
@@ -272,7 +353,7 @@ if not df.empty:
         return cumulative
 
     # Current Setup (Use server time or UTC to be safe, but local is fine for now)
-    now = pd.Timestamp.now(tz=df["created_at"].dt.tz)
+    now = pd.Timestamp.now(tz=df_coffee["created_at"].dt.tz)
     
     # --- Weekly Configuration (Mon-Sun) ---
     today = now.floor("D") # Midnight
@@ -288,10 +369,19 @@ if not df.empty:
     start_year = today.replace(month=1, day=1)
     end_year = today.replace(month=12, day=31).replace(hour=23, minute=59, second=59)
 
-    # Calculate Dataframes (All Daily resolution for smooth lines)
-    df_week = get_cumulative_data(df, start_week, end_week, "D")
-    df_month = get_cumulative_data(df, start_month, end_month, "D")
-    df_year = get_cumulative_data(df, start_year, end_year, "D")
+    # Calculate Dataframes (Coffee + Bea(tea))
+    # Create a display dataframe that includes Bea's tea counts as "Bea(tea)"
+    df_coffee_charts = df_coffee.copy()
+    
+    if not df_tea.empty:
+        bea_tea = df_tea[df_tea["user_name"] == "Bea"].copy()
+        if not bea_tea.empty:
+            bea_tea["user_name"] = "Bea(tea)"
+            df_coffee_charts = pd.concat([df_coffee_charts, bea_tea])
+
+    df_week = get_cumulative_data(df_coffee_charts, start_week, end_week, "D")
+    df_month = get_cumulative_data(df_coffee_charts, start_month, end_month, "D")
+    df_year = get_cumulative_data(df_coffee_charts, start_year, end_year, "D")
 
     import altair as alt
 
@@ -310,7 +400,7 @@ if not df.empty:
         chart = alt.Chart(source).mark_line(point=True, strokeWidth=3).encode(
             x=alt.X('index', title='Date', axis=alt.Axis(format='%b %d')),
             y=alt.Y('Coffees', scale=alt.Scale(domain=[0, y_domain_max])),
-            color=alt.Color('Coffee friend', scale=alt.Scale(scheme='category10')),
+            color=alt.Color('Coffee friend', scale=alt.Scale(domain=domain, range=range_)),
             tooltip=['index', 'Coffee friend', 'Coffees']
         ).properties(
             title=title,
@@ -342,6 +432,62 @@ if not df.empty:
     plot_metric(df_month, "")
     st.subheader("This Year")
     plot_metric(df_year, "")
+
+    # --- Tea Analytics ---
+    st.divider()
+    st.header("Tea Analytics 🍵")
+
+    # Use the separated df_tea
+    if not df_tea.empty:
+        # Tea Pie Chart
+        st.subheader("Tea Share 🍵")
+        tea_pie_df = pd.DataFrame(list(tea_scores.items()), columns=['Tea friend', 'Teas'])
+        tea_pie_df['Percentage'] = tea_pie_df['Teas'] / tea_pie_df['Teas'].sum()
+
+        base_tea = alt.Chart(tea_pie_df).encode(
+            theta=alt.Theta("Teas", stack=True)
+        )
+        pie_tea = base_tea.mark_arc(outerRadius=100).encode(
+            color=alt.Color("Tea friend", scale=alt.Scale(domain=domain, range=range_)),
+            order=alt.Order("Teas", sort="descending"),
+            tooltip=["Tea friend", "Teas", alt.Tooltip("Percentage", format=".1%")]
+        )
+        text_tea = base_tea.mark_text(radius=120).encode(
+            text=alt.Text("Percentage", format=".1%"),
+            order=alt.Order("Teas", sort="descending"),
+            color=alt.value("#4A3B32")
+        )
+        chart_pie_tea = (pie_tea + text_tea).properties(title="", height=350)
+        # Note: Configure is global for the chart object, we can reuse the specific style if we want, 
+        # but Altair configs are chart-specific.
+        
+        # Apply same style manually or via same config chain since we're displaying separately
+        chart_pie_tea = chart_pie_tea.configure(
+            background='#DDC7A0'
+        ).configure_view(
+            strokeWidth=0
+        ).configure_title(
+            fontSize=16, color='#4A3B32'
+        ).configure_legend(
+            labelColor='#4A3B32', titleColor='#4A3B32'
+        )
+        
+        st.altair_chart(chart_pie_tea, use_container_width=True)
+        st.divider()
+
+        # Calculate Dataframes for Tea
+        tea_week = get_cumulative_data(df_tea, start_week, end_week, "D")
+        tea_month = get_cumulative_data(df_tea, start_month, end_month, "D")
+        tea_year = get_cumulative_data(df_tea, start_year, end_year, "D")
+
+        st.subheader("Tea - This Week")
+        plot_metric(tea_week, "Cups of Tea")
+        st.subheader("Tea - This Month")
+        plot_metric(tea_month, "Cups of Tea")
+        st.subheader("Tea - This Year")
+        plot_metric(tea_year, "Cups of Tea")
+    else:
+        st.info("No tea data found yet. Drink some tea!")
     
     with st.expander("Show Raw Data"):
          st.dataframe(df, use_container_width=True)
