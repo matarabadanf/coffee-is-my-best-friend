@@ -98,7 +98,7 @@ def get_gamification_metrics(df_coffee, df_tea, users):
     # Historical Monthly Records
     if not combined.empty:
         combined_copy = combined.copy()
-        combined_copy["month_str"] = combined_copy["created_at"].dt.to_period("M").astype(str)
+        combined_copy["month_str"] = combined_copy["created_at"].dt.strftime("%Y-%m")
         months = sorted(combined_copy["month_str"].unique(), reverse=True)
         
         records = []
