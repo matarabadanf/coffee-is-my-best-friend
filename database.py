@@ -39,3 +39,35 @@ def insert_click(user: str, value: int, drink_id: int):
         "drink_id": drink_id
     }
     return supabase.table("clicks").insert(event_data).execute()
+
+def get_transactions():
+    supabase = get_supabase_client()
+    try:
+        all_data = []
+        limit = 1000
+        offset = 0
+        while True:
+            response = supabase.table("coin_transactions").select("*").range(offset, offset + limit - 1).execute()
+            data = response.data
+            if not data:
+                break
+            all_data.extend(data)
+            if len(data) < limit:
+                break
+            offset += limit
+        return all_data
+    except Exception:
+        return []
+
+def insert_transaction(user: str, amount: int, transaction_type: str, metadata: dict = None):
+    if metadata is None:
+        metadata = {}
+    supabase = get_supabase_client()
+    event_data = {
+        "user_name": user,
+        "amount": amount,
+        "transaction_type": transaction_type,
+        "metadata": metadata
+    }
+    return supabase.table("coin_transactions").insert(event_data).execute()
+

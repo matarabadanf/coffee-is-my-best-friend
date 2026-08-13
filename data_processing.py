@@ -16,9 +16,9 @@ def process_raw_data(data, users):
     if not df.empty and "created_at" in df.columns:
         df["created_at"] = pd.to_datetime(df["created_at"])
     
-    # Separate Dataframes
-    df_coffee = df[df["drink_id"] == 1]
-    df_tea = df[df["drink_id"] == 2]
+    # Separate Dataframes (1: Hot Coffee, 3: Iced Coffee, 2: Hot Tea, 4: Iced Tea)
+    df_coffee = df[df["drink_id"].isin([1, 3])]
+    df_tea = df[df["drink_id"].isin([2, 4])]
     
     # Calculate Scores
     coffee_scores = df_coffee.groupby("user_name")["value"].sum().to_dict()
@@ -27,12 +27,14 @@ def process_raw_data(data, users):
     return df, df_coffee, df_tea, coffee_scores, tea_scores
 
 def get_cumulative_data(data, start_date, end_date, users, freq="D"):
-    # 1. Expand range (reindex needs strict boundaries)
+    # 1. Normalize dates to clean midnight intervals so reindex matches resampled timestamps
+    start_date = pd.to_datetime(start_date).normalize()
+    end_date = pd.to_datetime(end_date).normalize()
     full_index = pd.date_range(start=start_date, end=end_date, freq=freq)
     
-    # 2. Filter first to minimize processing
-    mask = (data["created_at"] >= start_date) & (data["created_at"] <= end_date)
-    filtered_df = data.loc[mask]
+    # 2. Filter data within normalized boundaries
+    mask = (data["created_at"] >= start_date) & (data["created_at"] <= (end_date + pd.Timedelta(days=1)))
+    filtered_df = data.loc[mask].copy()
     
     if filtered_df.empty:
         empty_df = pd.DataFrame(0, index=full_index, columns=users)
@@ -42,8 +44,6 @@ def get_cumulative_data(data, start_date, end_date, users, freq="D"):
     pivot = filtered_df.pivot_table(index="created_at", columns="user_name", values="value", aggfunc="sum", fill_value=0)
     
     # 3. Ensure all users exist
-    # Here, we ensure the known users are in columns. If 'Bea(tea)' was added, 
-    # the calling function should make sure it passes it in the `users` list if needed.
     for u in users:
         if u not in pivot.columns:
             pivot[u] = 0
@@ -54,15 +54,7 @@ def get_cumulative_data(data, start_date, end_date, users, freq="D"):
     
     # 5. Cumulative Sum
     cumulative = resampled.cumsum()
-    
-    # 6. Mask future dates to stop the line at "today"
     cumulative = cumulative.astype(float)
-    
-    # Get cutoff (Now)
-    current_time = pd.Timestamp.now(tz=cumulative.index.tz).normalize()
-    
-    # Mask future dates
-    cumulative.loc[cumulative.index > current_time] = None
     
     return cumulative
 
@@ -85,17 +77,215 @@ def get_expense_and_caffeine(coffee_scores, tea_scores):
         
     return metrics
 
-def get_gamification_metrics(df_coffee, df_tea, users):
+# Achievement Configuration Tiers (Calibrated for balanced prestige and long-term milestones)
+ACHIEVEMENT_TIERS = {
+    "total": {
+        "title": "🏆 Universal Dedication",
+        "icon": "🏆",
+        "desc": "Overall drinks logged (Coffee + Tea, Hot + Iced).",
+        "tiers": [
+            {"level": "Bronze", "name": "Daily Sipper", "target": 100},
+            {"level": "Silver", "name": "Café Regular", "target": 350},
+            {"level": "Gold", "name": "Beverage Devotee", "target": 750},
+            {"level": "Diamond", "name": "Beverage Titan", "target": 1500},
+        ]
+    },
+    "coffee": {
+        "title": "☕ Espresso Mastery",
+        "icon": "☕",
+        "desc": "Total coffee cups consumed.",
+        "tiers": [
+            {"level": "Bronze", "name": "Bean Novice", "target": 150},
+            {"level": "Silver", "name": "Barista Artisan", "target": 400},
+            {"level": "Gold", "name": "Espresso Virtuoso", "target": 750},
+            {"level": "Diamond", "name": "Coffee Monarch", "target": 1500},
+        ]
+    },
+    "tea": {
+        "title": "🍵 Zen Tea Garden",
+        "icon": "🍵",
+        "desc": "Total tea brews consumed.",
+        "tiers": [
+            {"level": "Bronze", "name": "Leaf Initiate", "target": 50},
+            {"level": "Silver", "name": "Herbal Sage", "target": 125},
+            {"level": "Gold", "name": "Matcha Alchemist", "target": 250},
+            {"level": "Diamond", "name": "Zen Monarch", "target": 500},
+        ]
+    },
+    "iced": {
+        "title": "🧊 Sub-Zero Frost Realm",
+        "icon": "🧊",
+        "desc": "Total iced beverages consumed.",
+        "tiers": [
+            {"level": "Bronze", "name": "Chilled Sipper", "target": 15},
+            {"level": "Silver", "name": "Ice Sculptor", "target": 50},
+            {"level": "Gold", "name": "Frost Titan", "target": 120},
+            {"level": "Diamond", "name": "Sub-Zero Monarch", "target": 250},
+        ]
+    },
+    "streak": {
+        "title": "🔥 Streak Sovereign",
+        "icon": "🔥",
+        "desc": "Unbroken consecutive daily logging streak.",
+        "tiers": [
+            {"level": "Bronze", "name": "Spark", "target": 7},
+            {"level": "Silver", "name": "Iron Flame", "target": 21},
+            {"level": "Gold", "name": "Unstoppable Blaze", "target": 45},
+            {"level": "Diamond", "name": "Eternal Inferno", "target": 90},
+        ]
+    },
+    "active_days": {
+        "title": "🗓️ Calendar Dedication",
+        "icon": "🗓️",
+        "desc": "Total unique days with at least one logged drink.",
+        "tiers": [
+            {"level": "Bronze", "name": "Habit Initiate", "target": 75},
+            {"level": "Silver", "name": "Steadfast Brewer", "target": 220},
+            {"level": "Gold", "name": "Centurion", "target": 350},
+            {"level": "Diamond", "name": "Bicentennial Legend", "target": 500},
+        ]
+    },
+    "early": {
+        "title": "🌅 Dawn Patrol",
+        "icon": "🌅",
+        "desc": "Early morning drinks logged before 09:00 AM.",
+        "tiers": [
+            {"level": "Bronze", "name": "Sunrise Sipper", "target": 25},
+            {"level": "Silver", "name": "Early Rooster", "target": 60},
+            {"level": "Gold", "name": "Dawn Monarch", "target": 125},
+            {"level": "Diamond", "name": "Master of the Dawn", "target": 250},
+        ]
+    },
+    "night": {
+        "title": "🦉 Midnight Society",
+        "icon": "🦉",
+        "desc": "Evening & late-night drinks logged after 19:00 PM.",
+        "tiers": [
+            {"level": "Bronze", "name": "Dusk Drinker", "target": 30},
+            {"level": "Silver", "name": "Twilight Scholar", "target": 75},
+            {"level": "Gold", "name": "Midnight Monarch", "target": 150},
+            {"level": "Diamond", "name": "Creature of the Night", "target": 300},
+        ]
+    },
+    "surge": {
+        "title": "⚡ Velocity Overdrive",
+        "icon": "⚡",
+        "desc": "Days where 3 or more drinks were logged in 24 hours.",
+        "tiers": [
+            {"level": "Bronze", "name": "Turbo Day", "target": 35},
+            {"level": "Silver", "name": "Overdrive", "target": 90},
+            {"level": "Gold", "name": "Hyper-Drive", "target": 175},
+            {"level": "Diamond", "name": "Supersonic Monarch", "target": 300},
+        ]
+    },
+    "weekend": {
+        "title": "🏖️ Weekend Wanderer",
+        "icon": "🏖️",
+        "desc": "Total drinks logged on Saturdays and Sundays.",
+        "tiers": [
+            {"level": "Bronze", "name": "Saturday Starter", "target": 50},
+            {"level": "Silver", "name": "Sunday Brewer", "target": 110},
+            {"level": "Gold", "name": "Weekend Warrior", "target": 200},
+            {"level": "Diamond", "name": "Weekend Monarch", "target": 350},
+        ]
+    },
+    "combustion": {
+        "title": "🔥 Combustion Overclock",
+        "icon": "🔥",
+        "desc": "Days where daily caffeine velocity reached >= 400 mg (On-Fire state).",
+        "tiers": [
+            {"level": "Bronze", "name": "Ignition Spark", "target": 1},
+            {"level": "Silver", "name": "Flamethrower", "target": 5},
+            {"level": "Gold", "name": "Inferno Beast", "target": 15},
+            {"level": "Diamond", "name": "Combustion Monarch", "target": 35},
+        ]
+    }
+}
+
+SECRET_FEATS = [
+    {
+        "id": "phantom",
+        "title": "🌒 The Phantom of 03:00",
+        "desc": "Distilled the sacred brew between 03:00 AM and 03:59 AM in the dead of night.",
+        "hint": "When the third hour tolls and the world surrenders to shadows, only the sleepless ghost distills the elixir..."
+    },
+    {
+        "id": "clockwork",
+        "title": "🕰️ The Atomic Precisionist",
+        "desc": "Logged a beverage at the exact zero-minute mark (:00) of the hour with chronometer precision.",
+        "hint": "When the gear strikes true north on the zero tick, drink without a microsecond of hesitation..."
+    },
+    {
+        "id": "power_nap",
+        "title": "💤 Power Nap Protocol",
+        "desc": "Logged consecutive drinks separated by an exact 18-to-25 minute power nap window.",
+        "hint": "Rest for the duration of a sparrow's slumber. Awaken and drink before the half-hour expires..."
+    },
+    {
+        "id": "cursed_fusion",
+        "title": "🧙‍♂️ The Cursed Fusion",
+        "desc": "Committed barista heresy by logging a Coffee and a Tea within 90 seconds of each other.",
+        "hint": "Pour the essence of the roasted bean and the spirit of the leaf into the same cauldron before the steam subsides..."
+    },
+    {
+        "id": "overclock",
+        "title": "⚡ Overclock Protocol",
+        "desc": "Pushed vascular limits with 4 or more drinks consumed within a 2-hour window.",
+        "hint": "A tempest within a heartbeat. Four strikes before the hourglass turns twice..."
+    },
+    {
+        "id": "monastic",
+        "title": "📜 The Monastic Vow",
+        "desc": "Maintained an unbroken vow of singular devotion with 35+ consecutive identical beverage logs.",
+        "hint": "True conviction is not variety, but relentless focus. Thirty-five steps along a single path without turning your gaze..."
+    },
+    {
+        "id": "high_noon",
+        "title": "☀️ High Noon Apex",
+        "desc": "Brewed precisely during the solar zenith between 12:00 PM and 12:05 PM.",
+        "hint": "Strike when the sun reaches the true apex, and the shadow vanishes directly beneath the pedestal..."
+    },
+    {
+        "id": "all_nighter",
+        "title": "🦉 The All-Nighter",
+        "desc": "Conquered the midnight abyss by logging a late-night drink after 23:00 PM and greeting the dawn before 06:00 AM.",
+        "hint": "Bridge the abyss of midnight. Drink as the stars reign, and greet the dawn without closing your eyes..."
+    },
+    {
+        "id": "alchemist",
+        "title": "🔮 The Grand Alchemist",
+        "desc": "Mastered all 4 elemental chalices: Hot Coffee, Iced Coffee, Hot Tea, and Iced Tea.",
+        "hint": "Four elemental chalices exist in the realm: Ember, Steam, Ice, and Mist. Collect all four to close the circle..."
+    },
+    {
+        "id": "thermal_sandwich",
+        "title": "🥪 The Thermal Sandwich",
+        "desc": "Encased a Hot drink between two consecutive Iced drinks (Iced ➔ Hot ➔ Iced).",
+        "hint": "Encase the burning ember between two slabs of frozen crystal..."
+    },
+    {
+        "id": "chromatic_sovereign",
+        "title": "🌈 The Chromatic Sovereign",
+        "desc": "Unlocked all 8 handcrafted aesthetic palettes in the Theme Boutique to attain complete stylistic supremacy.",
+        "hint": "Don every cloak, gown, and armor tailored by the masters of bean and leaf..."
+    }
+]
+
+def get_gamification_metrics(df_coffee, df_tea, users, transactions=None):
     trophies = {
         "monthly_records": [],
         "caffeine_addict": None,
         "tea_purist": None,
-        "streaks": {}
+        "ice_monarch": None,
+        "combustion_monarch": None,
+        "streaks": {},
+        "personal_achievements": {},
+        "secret_feats": {}
     }
     
     combined = pd.concat([df_coffee, df_tea]) if not df_coffee.empty or not df_tea.empty else pd.DataFrame()
 
-    # Historical Monthly Records
+    # Historical Monthly Records with gender-neutral Monarch titles
     if not combined.empty:
         combined_copy = combined.copy()
         combined_copy["month_str"] = combined_copy["created_at"].dt.strftime("%Y-%m")
@@ -105,8 +295,8 @@ def get_gamification_metrics(df_coffee, df_tea, users):
         for m in months:
             month_data = combined_copy[combined_copy["month_str"] == m]
             
-            c_data = month_data[month_data["drink_id"] == 1]
-            t_data = month_data[month_data["drink_id"] == 2]
+            c_data = month_data[month_data["drink_id"].isin([1, 3])]
+            t_data = month_data[month_data["drink_id"].isin([2, 4])]
             
             top_c = "-"
             if not c_data.empty:
@@ -123,13 +313,13 @@ def get_gamification_metrics(df_coffee, df_tea, users):
             month_name = pd.to_datetime(m + "-01").strftime("%B %Y")
             records.append({
                 "Month": month_name,
-                "☕ Top Coffee Drinker": top_c,
-                "🍵 Top Tea Drinker": top_t
+                "☕ Coffee Monarch": top_c,
+                "🍵 Tea Monarch": top_t
             })
             
         trophies["monthly_records"] = records
             
-    # Caffeine Addict (Most coffees in last 7 days)
+    # Caffeine Monarch of the Week (Most coffees in last 7 days)
     if not df_coffee.empty:
         seven_days_ago = pd.Timestamp.now(tz=df_coffee["created_at"].dt.tz) - pd.Timedelta(days=7)
         recent_coffees = df_coffee[df_coffee["created_at"] >= seven_days_ago]
@@ -138,17 +328,56 @@ def get_gamification_metrics(df_coffee, df_tea, users):
             if not counts.empty:
                 trophies["caffeine_addict"] = counts.idxmax()
                 
-    # Tea Purist (Highest Tea-to-Coffee ratio)
+    # Tea Monarch / Purist (Highest Tea-to-Coffee ratio)
     best_ratio = -1
     for user in users:
         c_count = len(df_coffee[df_coffee["user_name"] == user]) if not df_coffee.empty else 0
         t_count = len(df_tea[df_tea["user_name"] == user]) if not df_tea.empty else 0
         
         if t_count > 0:
-            ratio = t_count / (c_count + 1) # Add 1 to avoid div by zero
+            ratio = t_count / (c_count + 1)
             if ratio > best_ratio:
                 best_ratio = ratio
                 trophies["tea_purist"] = user
+
+    # Sub-Zero Monarch (Most Iced Drinks all-time)
+    if not combined.empty and "drink_id" in combined.columns:
+        iced_logs = combined[combined["drink_id"].isin([3, 4])]
+        if not iced_logs.empty:
+            ice_counts = iced_logs.groupby("user_name")["value"].sum()
+            if not ice_counts.empty:
+                trophies["ice_monarch"] = {
+                    "user": ice_counts.idxmax(),
+                    "count": int(ice_counts.max())
+                }
+
+    # Combustion Monarch (Most On-Fire days with >= 400 mg caffeine)
+    best_fire_user = None
+    best_fire_days = 0
+    for user in users:
+        if not combined.empty:
+            u_logs = combined[combined["user_name"] == user].copy()
+            if not u_logs.empty:
+                if u_logs["created_at"].dt.tz is None:
+                    u_logs["created_at"] = u_logs["created_at"].dt.tz_localize("UTC")
+                u_logs["created_at"] = u_logs["created_at"].dt.tz_convert("Europe/Madrid")
+                u_logs["date_only"] = u_logs["created_at"].dt.date
+                def calc_caff_m(r):
+                    val = r["value"]
+                    did = r["drink_id"]
+                    return val * 95 if did in [1, 3] else val * 35
+                u_logs["caffeine_mg"] = u_logs.apply(calc_caff_m, axis=1)
+                daily_caff = u_logs.groupby("date_only")["caffeine_mg"].sum()
+                fire_days = int((daily_caff >= 400).sum())
+                if fire_days > best_fire_days:
+                    best_fire_days = fire_days
+                    best_fire_user = user
+                    
+    if best_fire_user and best_fire_days > 0:
+        trophies["combustion_monarch"] = {
+            "user": best_fire_user,
+            "count": best_fire_days
+        }
 
     # Streaks (Active consecutive days logging ANY drink)
     longest_streak_user = None
@@ -285,8 +514,8 @@ def get_gamification_metrics(df_coffee, df_tea, users):
         for user in users:
             user_logs = df_local[df_local["user_name"] == user]
             if not user_logs.empty and len(user_logs) > 4: # Need at least 5 drinks to judge
-                c_count = len(user_logs[user_logs["drink_id"] == 1])
-                t_count = len(user_logs[user_logs["drink_id"] == 2])
+                c_count = len(user_logs[user_logs["drink_id"].isin([1, 3])])
+                t_count = len(user_logs[user_logs["drink_id"].isin([2, 4])])
                 total = c_count + t_count
                 if total > 0:
                     diff = abs((c_count / total) - (t_count / total))
@@ -304,7 +533,7 @@ def get_gamification_metrics(df_coffee, df_tea, users):
         df_local["year_week"] = df_local["created_at"].dt.strftime("%Y-%W")
         
         # 1. Monday Grump
-        mondays = df_local[(df_local["dayofweek"] == 0) & (df_local["drink_id"] == 1)]
+        mondays = df_local[(df_local["dayofweek"] == 0) & (df_local["drink_id"].isin([1, 3]))]
         if not mondays.empty:
             counts = mondays.groupby("user_name")["value"].sum()
             if not counts.empty:
@@ -366,25 +595,207 @@ def get_gamification_metrics(df_coffee, df_tea, users):
                         if current_streak > monogamist_streak:
                             monogamist_streak = current_streak
                             monogamist_user = user
-                            monogamist_drink = "Coffee" if current_drink == 1 else "Tea"
+                            monogamist_drink = "Coffee" if current_drink in [1, 3] else "Tea"
                     else:
                         current_drink = drinks[i]
                         current_streak = 1
         if monogamist_user and monogamist_streak > 1:
             trophies["monogamist"] = {"user": monogamist_user, "streak": monogamist_streak, "drink": monogamist_drink}
 
-        # 6. Afternoon Slump (14:00 - 16:59)
-        afternoons = df_local[df_local["hour"].isin([14, 15, 16])]
-        if not afternoons.empty:
-            counts = afternoons.groupby("user_name")["value"].sum()
-            if not counts.empty:
-                trophies["afternoon_slump"] = {"user": counts.idxmax(), "count": int(counts.max())}
+    # --- Personal Tiered Achievements & Secret Feats per User ---
+    for user in users:
+        user_logs = combined[combined["user_name"] == user].copy() if not combined.empty else pd.DataFrame()
+        
+        if not user_logs.empty:
+            if user_logs["created_at"].dt.tz is None:
+                user_logs["created_at"] = user_logs["created_at"].dt.tz_localize("UTC")
+            user_logs["created_at"] = user_logs["created_at"].dt.tz_convert("Europe/Madrid")
+            user_logs["date_only"] = user_logs["created_at"].dt.date
+            user_logs["hour"] = user_logs["created_at"].dt.hour
+            user_logs["dayofweek"] = user_logs["created_at"].dt.dayofweek
+            
+            u_coffee = int(user_logs[user_logs["drink_id"].isin([1, 3])]["value"].sum())
+            u_tea = int(user_logs[user_logs["drink_id"].isin([2, 4])]["value"].sum())
+            u_total = u_coffee + u_tea
+            u_iced = int(user_logs[user_logs["drink_id"].isin([3, 4])]["value"].sum())
+            
+            u_active_days = int(user_logs["date_only"].nunique())
+            u_early = int(user_logs[user_logs["hour"] < 9]["value"].sum())
+            u_night = int(user_logs[user_logs["hour"] >= 19]["value"].sum())
+            u_weekend = int(user_logs[user_logs["dayofweek"].isin([5, 6])]["value"].sum())
+            u_surge = int((user_logs.groupby("date_only")["value"].sum() >= 3).sum())
+            u_mondays = int(user_logs[user_logs["dayofweek"] == 0]["value"].sum())
+            
+            def calc_row_caff(r):
+                val = r["value"]
+                did = r["drink_id"]
+                return val * 95 if did in [1, 3] else val * 35
+            user_logs["caffeine_mg"] = user_logs.apply(calc_row_caff, axis=1)
+            u_daily_caff = user_logs.groupby("date_only")["caffeine_mg"].sum()
+            u_on_fire_days = int((u_daily_caff >= 400).sum())
+        else:
+            u_coffee = 0
+            u_tea = 0
+            u_total = 0
+            u_iced = 0
+            u_active_days = 0
+            u_early = 0
+            u_night = 0
+            u_weekend = 0
+            u_surge = 0
+            u_mondays = 0
+            u_on_fire_days = 0
+            
+        u_streak = trophies["streaks"].get(user, 0)
+
+        user_counts = {
+            "total": u_total,
+            "coffee": u_coffee,
+            "tea": u_tea,
+            "iced": u_iced,
+            "streak": u_streak,
+            "active_days": u_active_days,
+            "early": u_early,
+            "night": u_night,
+            "surge": u_surge,
+            "weekend": u_weekend,
+            "combustion": u_on_fire_days
+        }
+
+        # Build Tier Progression
+        user_achievements = {}
+        for cat_key, cat_meta in ACHIEVEMENT_TIERS.items():
+            current_val = user_counts.get(cat_key, 0)
+            tiers_progress = []
+            for t in cat_meta["tiers"]:
+                target = t["target"]
+                is_unlocked = current_val >= target
+                pct = min(1.0, current_val / max(1, target))
+                tiers_progress.append({
+                    "level": t["level"],
+                    "name": t["name"],
+                    "target": target,
+                    "current": current_val,
+                    "unlocked": is_unlocked,
+                    "progress_pct": pct
+                })
+            user_achievements[cat_key] = {
+                "title": cat_meta["title"],
+                "icon": cat_meta["icon"],
+                "desc": cat_meta.get("desc", ""),
+                "tiers": tiers_progress
+            }
+        trophies["personal_achievements"][user] = user_achievements
+
+        # Check Mysterious Secret Feats
+        user_secrets = {}
+        if not user_logs.empty:
+            sorted_logs = user_logs.sort_values("created_at")
+            drinks = sorted_logs["drink_id"].tolist()
+            
+            # 1. The Phantom of 03:00 (03:00 to 03:59 AM)
+            phantom_unlocked = not sorted_logs[sorted_logs["hour"] == 3].empty
+            
+            # 2. The Atomic Precisionist (:00 on the dot)
+            clockwork_unlocked = not sorted_logs[sorted_logs["created_at"].dt.minute == 0].empty
+            
+            # 3. Power Nap Protocol (18 to 25 min gap)
+            power_nap_unlocked = False
+            if len(sorted_logs) > 1:
+                gaps = sorted_logs["created_at"].diff().dropna()
+                power_nap_unlocked = bool(((gaps >= pd.Timedelta(minutes=18)) & (gaps <= pd.Timedelta(minutes=25))).any())
+                
+            # 4. The Cursed Fusion (Coffee + Tea within 90s)
+            fusion_unlocked = False
+            if len(sorted_logs) > 1:
+                for i in range(len(sorted_logs) - 1):
+                    d1 = sorted_logs.iloc[i]
+                    d2 = sorted_logs.iloc[i+1]
+                    if (d1["drink_id"] in [1, 3]) != (d2["drink_id"] in [1, 3]):
+                        if (d2["created_at"] - d1["created_at"]).total_seconds() <= 90:
+                            fusion_unlocked = True
+                            break
+                            
+            # 5. Overclock Protocol (4+ drinks within 120 minutes)
+            overclock_unlocked = False
+            if len(sorted_logs) >= 4:
+                for i in range(len(sorted_logs) - 3):
+                    t_start = sorted_logs.iloc[i]["created_at"]
+                    t_end = sorted_logs.iloc[i+3]["created_at"]
+                    if (t_end - t_start) <= pd.Timedelta(hours=2):
+                        overclock_unlocked = True
+                        break
+                        
+            # 6. The Monastic Vow (35+ consecutive same drink logs)
+            monastic_unlocked = False
+            cur_streak = 1
+            for i in range(1, len(drinks)):
+                if drinks[i] == drinks[i-1]:
+                    cur_streak += 1
+                    if cur_streak >= 35:
+                        monastic_unlocked = True
+                        break
+                else:
+                    cur_streak = 1
+                    
+            # 7. High Noon Apex (12:00 to 12:05 PM)
+            high_noon_unlocked = not sorted_logs[(sorted_logs["hour"] == 12) & (sorted_logs["created_at"].dt.minute <= 5)].empty
+            
+            # 8. The All-Nighter (log >= 23h and next <= 06h within 7h)
+            all_nighter_unlocked = False
+            if len(sorted_logs) > 1:
+                for i in range(len(sorted_logs) - 1):
+                    t1 = sorted_logs.iloc[i]["created_at"]
+                    t2 = sorted_logs.iloc[i+1]["created_at"]
+                    if t1.hour >= 23 and t2.hour < 6 and (t2 - t1) <= pd.Timedelta(hours=7):
+                        all_nighter_unlocked = True
+                        break
+                        
+            # 9. The Grand Alchemist (Logged all 4 distinct drink variations)
+            alchemist_unlocked = bool(set(sorted_logs["drink_id"].unique()) == {1, 2, 3, 4})
+            
+            # 10. The Thermal Sandwich (Iced -> Hot -> Iced)
+            sandwich_unlocked = False
+            if len(drinks) >= 3:
+                for i in range(len(drinks) - 2):
+                    if drinks[i] in [3, 4] and drinks[i+1] in [1, 2] and drinks[i+2] in [3, 4]:
+                        sandwich_unlocked = True
+                        break
+        else:
+            phantom_unlocked = False
+            clockwork_unlocked = False
+            power_nap_unlocked = False
+            fusion_unlocked = False
+            overclock_unlocked = False
+            monastic_unlocked = False
+            high_noon_unlocked = False
+            all_nighter_unlocked = False
+            alchemist_unlocked = False
+            sandwich_unlocked = False
+
+        # 11. The Chromatic Sovereign (Unlocked all 8 themes in Theme Shop)
+        unlocked_set = set(get_unlocked_themes(transactions, user)) if transactions else set(BASE_THEMES)
+        chromatic_unlocked = bool(len(unlocked_set) >= len(ALL_VALID_THEMES))
+
+        user_secrets["phantom"] = phantom_unlocked
+        user_secrets["clockwork"] = clockwork_unlocked
+        user_secrets["power_nap"] = power_nap_unlocked
+        user_secrets["cursed_fusion"] = fusion_unlocked
+        user_secrets["overclock"] = overclock_unlocked
+        user_secrets["monastic"] = monastic_unlocked
+        user_secrets["high_noon"] = high_noon_unlocked
+        user_secrets["all_nighter"] = all_nighter_unlocked
+        user_secrets["alchemist"] = alchemist_unlocked
+        user_secrets["thermal_sandwich"] = sandwich_unlocked
+        user_secrets["chromatic_sovereign"] = chromatic_unlocked
+
+        trophies["secret_feats"][user] = user_secrets
 
     return trophies
 
 import random
 
-def get_user_titles(user, trophies):
+def get_user_titles(user, trophies, return_all=False):
     titles = []
     
     if trophies.get("caffeine_addict") == user: titles.append("☕ Caffeine Addict")
@@ -433,7 +844,130 @@ def get_user_titles(user, trophies):
     asl = trophies.get("afternoon_slump")
     if asl and isinstance(asl, dict) and asl.get("user") == user: titles.append("😴 Afternoon Slump")
     
+    if return_all:
+        return titles
+        
     if not titles:
         return "Alicia would not be proud"
         
     return random.choice(titles)
+
+def get_coin_balances(df, transactions, users):
+    balances = {u: 0 for u in users}
+    
+    if not df.empty:
+        counts = df.groupby("user_name").size()
+        for u, count in counts.items():
+            if u in balances:
+                balances[u] += count * 10
+                
+    if transactions:
+        tx_df = pd.DataFrame(transactions)
+        if not tx_df.empty and "amount" in tx_df.columns:
+            tx_sums = tx_df.groupby("user_name")["amount"].sum()
+            for u, amt in tx_sums.items():
+                if u in balances:
+                    balances[u] += amt
+                    
+    return balances
+
+def get_active_perks(transactions, users):
+    perks = {u: [] for u in users}
+    if not transactions:
+        return perks
+        
+    tx_df = pd.DataFrame(transactions)
+    if tx_df.empty or "transaction_type" not in tx_df.columns:
+        return perks
+        
+    shop_txs = tx_df[tx_df["transaction_type"] == "shop"]
+    if shop_txs.empty:
+        return perks
+        
+    for _, row in shop_txs.iterrows():
+        meta = row.get("metadata", {})
+        if isinstance(meta, dict) and "perk" in meta:
+            expires_at = meta.get("expires_at")
+            if expires_at:
+                try:
+                    expires_dt = pd.to_datetime(expires_at)
+                    if pd.Timestamp.now(tz="UTC") > expires_dt:
+                        continue 
+                except:
+                    pass
+            
+            u = row.get("user_name")
+            if u in perks:
+                perks[u].append(meta["perk"])
+                
+    return perks
+
+BASE_THEMES = ["Latte (Light)"]
+ALL_VALID_THEMES = [
+    "Latte (Light)",
+    "Espresso (Dark)",
+    "Matcha (Green)",
+    "Caramel Macchiato (Amber)",
+    "Strawberry Frappé (Pink)",
+    "Taro Boba (Purple)",
+    "Midnight Cyber Brew (Dark Neon)",
+    "Velvet Mocha (Cocoa)"
+]
+
+def get_unlocked_themes(transactions, user):
+    """Returns list of themes unlocked by a specific user (always includes base themes)."""
+    unlocked = set(BASE_THEMES)
+    if not transactions:
+        return [t for t in ALL_VALID_THEMES if t in unlocked]
+        
+    tx_df = pd.DataFrame(transactions)
+    if tx_df.empty or "transaction_type" not in tx_df.columns:
+        return [t for t in ALL_VALID_THEMES if t in unlocked]
+        
+    user_shop_txs = tx_df[(tx_df["transaction_type"] == "shop") & (tx_df["user_name"] == user)]
+    if not user_shop_txs.empty:
+        for _, row in user_shop_txs.iterrows():
+            meta = row.get("metadata", {})
+            if isinstance(meta, dict):
+                theme_unlocked = meta.get("theme_unlock") or meta.get("unlocked_theme")
+                if theme_unlocked and theme_unlocked in ALL_VALID_THEMES:
+                    unlocked.add(theme_unlocked)
+                    
+    # Return in standardized order
+    return [t for t in ALL_VALID_THEMES if t in unlocked]
+
+def get_user_preferences(transactions, users):
+    prefs = {u: {"theme": "Latte (Light)", "emoji": "☕", "title": None, "ui_style": "Modern Flat"} for u in users}
+    
+    if not transactions:
+        return prefs
+        
+    tx_df = pd.DataFrame(transactions)
+    if tx_df.empty or "transaction_type" not in tx_df.columns:
+        return prefs
+        
+    pref_txs = tx_df[tx_df["transaction_type"] == "preference"]
+    if pref_txs.empty:
+        return prefs
+        
+    for _, row in pref_txs.iterrows():
+        u = row.get("user_name")
+        meta = row.get("metadata", {})
+        if u in prefs and isinstance(meta, dict):
+            if "theme" in meta:
+                theme_val = meta["theme"]
+                unlocked_for_u = get_unlocked_themes(transactions, u)
+                if theme_val not in unlocked_for_u:
+                    theme_val = "Latte (Light)"
+                prefs[u]["theme"] = theme_val
+            if "emoji" in meta:
+                prefs[u]["emoji"] = meta["emoji"]
+            if "title" in meta:
+                prefs[u]["title"] = meta["title"]
+            if "ui_style" in meta:
+                style_val = meta["ui_style"]
+                if style_val not in ["Modern Flat", "Glassmorphism", "Neumorphism"]:
+                    style_val = "Modern Flat"
+                prefs[u]["ui_style"] = style_val
+                
+    return prefs
