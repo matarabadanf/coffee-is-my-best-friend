@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import altair as alt
 import datetime
+import time
 
 from database import get_data, get_transactions, insert_transaction
 from data_processing import process_raw_data, get_coin_balances, get_user_preferences, get_unlocked_themes
@@ -108,24 +109,31 @@ with st.container(border=True):
                 st.rerun()
         else:
             price = t_meta["price"]
-            st.warning(f"🔒 **Locked Shop Theme** — Price: 🪙 `{price} Coins`")
+            st.warning(f"🔒 **Locked Shop Theme** — Price: 🪙 `{price:,} Coins`")
             
-            with st.popover(f"🪙 Unlock for {price} Coins", use_container_width=True):
-                pin = ""
-                if not is_pin_verified(selected_user):
-                    st.write("Confirm purchase with PIN:")
-                    pin = st.text_input("PIN", type="password", key=f"pin_unlock_{preview_theme}")
+            pin_input = ""
+            if not is_pin_verified(selected_user):
+                pin_input = st.text_input(
+                    "Security PIN:", 
+                    type="password", 
+                    placeholder="Enter PIN to unlock",
+                    key=f"buy_pin_{preview_theme}"
+                )
+            else:
+                st.caption("🔓 *Security session verified.*")
+                
+            if st.button(f"🪙 Unlock & Equip for {price:,} Coins", key=f"btn_buy_{preview_theme}", use_container_width=True):
+                if balance < price:
+                    st.error(f"❌ Not enough coins! You have 🪙 {balance:,} but need 🪙 {price:,}.")
+                elif verify_pin(selected_user, pin_input):
+                    insert_transaction(selected_user, -price, "shop", {"theme_unlock": preview_theme, "item": f"theme_{preview_theme}"})
+                    insert_transaction(selected_user, 0, "preference", {"theme": preview_theme, "ui_style": preview_style})
+                    st.balloons()
+                    st.success(f"🎉 Unlocked and equipped **{preview_theme}**!")
+                    time.sleep(1.2)
+                    st.rerun()
                 else:
-                    st.success("🔓 PIN session verified.")
-                    
-                if st.button("Confirm Purchase & Unlock", key=f"confirm_unlock_{preview_theme}", use_container_width=True):
-                    if balance < price:
-                        st.error("Not enough coins!")
-                    elif verify_pin(selected_user, pin):
-                        insert_transaction(selected_user, -price, "shop", {"theme_unlock": preview_theme, "item": f"theme_{preview_theme}"})
-                        insert_transaction(selected_user, 0, "preference", {"theme": preview_theme, "ui_style": preview_style})
-                        st.success(f"Unlocked and equipped {preview_theme}!")
-                        st.rerun()
+                    st.error("❌ Incorrect PIN! Please enter your profile PIN to confirm purchase.")
 
 st.divider()
 
@@ -215,5 +223,35 @@ for idx, (t_name, meta) in enumerate(THEME_METADATA.items()):
                 st.success("✅ Owned")
                 st.button(f"👁️ Preview `{meta['icon']}`", on_click=set_theme_preview, args=(t_name, preview_style), key=f"prev_cat_{t_name}", use_container_width=True)
             else:
-                st.info(f"🪙 `{meta['price']} Coins`")
-                st.button(f"👁️ Test `{meta['icon']}`", on_click=set_theme_preview, args=(t_name, preview_style), key=f"prev_cat_{t_name}", use_container_width=True)
+                st.info(f"🪙 `{meta['price']:,} Coins`")
+                cat_b1, cat_b2 = st.columns(2)
+                with cat_b1:
+                    st.button(f"👁️ Preview", on_click=set_theme_preview, args=(t_name, preview_style), key=f"prev_cat_{t_name}", use_container_width=True)
+                with cat_b2:
+                    with st.popover("🪙 Buy", use_container_width=True):
+                        st.write(f"Unlock **{t_name}** for 🪙 `{meta['price']:,}`?")
+                        cat_pin = ""
+                        if not is_pin_verified(selected_user):
+                            cat_pin = st.text_input("PIN", type="password", key=f"cat_pin_{t_name}")
+                        if st.button("Confirm", key=f"cat_confirm_{t_name}", use_container_width=True):
+                            if balance < meta["price"]:
+                                st.error("Not enough coins!")
+                            elif verify_pin(selected_user, cat_pin):
+                                insert_transaction(
+                                    selected_user, 
+                                    -meta["price"], 
+                                    "shop", 
+                                    {"theme_unlock": t_name, "item": f"theme_{t_name}"}
+                                )
+                                insert_transaction(
+                                    selected_user, 
+                                    0, 
+                                    "preference", 
+                                    {"theme": t_name, "ui_style": preview_style}
+                                )
+                                st.session_state.theme_shop_picker = t_name
+                                st.success(f"Unlocked {t_name}!")
+                                st.rerun()
+                            else:
+                                st.error("Incorrect PIN!")
+
