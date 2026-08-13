@@ -15,8 +15,19 @@ def get_supabase_client() -> Client:
 def get_data():
     supabase = get_supabase_client()
     try:
-        response = supabase.table("clicks").select("*").execute()
-        return response.data
+        all_data = []
+        limit = 1000
+        offset = 0
+        while True:
+            response = supabase.table("clicks").select("*").range(offset, offset + limit - 1).execute()
+            data = response.data
+            if not data:
+                break
+            all_data.extend(data)
+            if len(data) < limit:
+                break
+            offset += limit
+        return all_data
     except Exception:
         return []
 
