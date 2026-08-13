@@ -17,6 +17,7 @@ from utils import enforce_user_identity
 from components.ui import (
     inject_custom_css, 
     render_app_header, 
+    render_daily_fact_quote,
     render_circular_caffeine_gauge, 
     render_coffee_tea_fuel_bar
 )
@@ -57,6 +58,9 @@ render_app_header(
     custom_emoji=user_emoji, 
     custom_title=user_title
 )
+
+# --- 1.1 Standalone Daily Trivia Quote (Outside the header box) ---
+render_daily_fact_quote()
 
 now = pd.Timestamp.now(tz="Europe/Madrid") if df.empty else pd.Timestamp.now(tz="UTC").tz_convert("Europe/Madrid")
 

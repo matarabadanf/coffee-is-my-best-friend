@@ -428,52 +428,186 @@ def inject_custom_css(theme="Latte (Light)", ui_style="Modern Flat"):
         text-align: center; 
     }}
 
-    /* --- Native App Header Shell --- */
+    /* Header Shell */
     .app-header-shell {{
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.9rem 1.4rem;
-        background: var(--glass-bg);
+        background: var(--container-bg);
         border: 1.5px solid var(--border-color);
         border-radius: 20px;
-        margin-bottom: 1.2rem;
+        padding: 0.95rem 1.4rem;
+        margin-bottom: 0.6rem;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
+        gap: 0.8rem;
     }}
     .app-header-greeting {{
         display: flex;
         flex-direction: column;
+        min-width: 0;
     }}
     .app-header-greeting h2 {{
         margin: 0 !important;
-        font-size: 1.35rem !important;
+        font-size: 1.3rem !important;
         font-weight: 800 !important;
         line-height: 1.2 !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }}
     .app-header-greeting span {{
         color: var(--text-muted);
-        font-size: 0.85rem;
+        font-size: 0.82rem;
+        font-weight: 600;
         margin-top: 2px;
     }}
     .app-header-badges {{
         display: flex;
         align-items: center;
-        gap: 0.65rem;
+        gap: 0.5rem;
+        flex-shrink: 0;
     }}
     .header-pill-badge {{
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
-        padding: 0.35rem 0.85rem;
+        padding: 0.35rem 0.8rem;
         border-radius: 999px;
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         font-weight: 700;
-        border: 1px solid var(--border-color);
+        border: 1.5px solid var(--border-color);
         background: var(--input-bg);
         color: var(--text-color);
         box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        white-space: nowrap;
+    }}
+
+    /* Standalone Daily Fact Quote (Outside the box) */
+    .daily-fact-quote {{
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        background: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 0.55rem 0.9rem;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        line-height: 1.4;
+        margin-bottom: 1.2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }}
+    .daily-fact-quote strong {{
+        color: var(--text-color);
+        font-weight: 700;
+    }}
+    .daily-fact-quote em {{
+        color: var(--text-color);
+    }}
+
+    /* =========================================================
+       MOBILE-FIRST RESPONSIVE ENGINE (@media max-width: 768px)
+       ========================================================= */
+    @media (max-width: 768px) {{
+        /* Optimize viewport canvas */
+        .block-container {{
+            padding-top: 1.2rem !important;
+            padding-bottom: 3.5rem !important;
+            padding-left: 0.65rem !important;
+            padding-right: 0.65rem !important;
+            max-width: 100% !important;
+        }}
+
+        /* App Header on Mobile: Executive Column & Full-Width Shelf */
+        .app-header-shell {{
+            flex-direction: column !important;
+            align-items: stretch !important;
+            padding: 0.85rem 1rem !important;
+            gap: 10px !important;
+            border-radius: 18px !important;
+        }}
+        .app-header-greeting h2 {{
+            font-size: 1.15rem !important;
+            white-space: normal !important;
+        }}
+        .app-header-greeting span {{
+            font-size: 0.78rem !important;
+        }}
+        .app-header-badges {{
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 6px !important;
+            width: 100% !important;
+        }}
+        .header-pill-badge {{
+            justify-content: center !important;
+            padding: 0.35rem 0.4rem !important;
+            font-size: 0.75rem !important;
+            gap: 3px !important;
+        }}
+        .header-pill-badge span {{
+            font-size: 0.75rem !important;
+        }}
+
+        /* Fact Quote on Mobile */
+        .daily-fact-quote {{
+            font-size: 0.76rem !important;
+            padding: 0.45rem 0.7rem !important;
+            margin-bottom: 0.9rem !important;
+        }}
+
+        /* Mobile Metric Grids (Flow 4 metrics into 2x2 grid) */
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stMetric"]) {{
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+        }}
+        div[data-testid="stHorizontalBlock"]:has(div[data-testid="stMetric"]) > div {{
+            width: 100% !important;
+            min-width: 0 !important;
+        }}
+        div[data-testid="stMetric"] {{
+            padding: 0.65rem 0.75rem !important;
+            border-radius: 14px !important;
+        }}
+        [data-testid="stMetricValue"] {{
+            font-size: 1.25rem !important;
+        }}
+        [data-testid="stMetricLabel"] {{
+            font-size: 0.75rem !important;
+        }}
+
+        /* Mobile Button Touch Targets */
+        div[data-testid="stButton"] > button,
+        div[data-testid="stFormSubmitButton"] > button,
+        div[data-testid="stDownloadButton"] > button {{
+            padding: 0.65rem 0.85rem !important;
+            font-size: 0.88rem !important;
+            border-radius: 14px !important;
+        }}
+
+        /* Native App Touch Feedback */
+        div[data-testid="stButton"] > button:active,
+        div[data-testid="stFormSubmitButton"] > button:active,
+        div[data-testid*="Segmented"] button:active {{
+            transform: scale(0.96) !important;
+        }}
+
+        /* Fluid Segmented Control on Mobile */
+        div[data-testid*="SegmentedControl"],
+        div[data-baseweb="segmented-control"] {{
+            width: 100% !important;
+            overflow-x: auto !important;
+            padding: 3px !important;
+        }}
+        div[data-testid*="SegmentedControl"] button,
+        div[data-baseweb="segmented-control"] button {{
+            padding: 0.4rem 0.75rem !important;
+            font-size: 0.82rem !important;
+            flex: 1 !important;
+        }}
     }}
 
     /* --- Tactile Drink Quick-Tap Cards --- */
@@ -977,13 +1111,11 @@ def render_app_header(selected_user="Cris", coin_balance=0, streak_days=0, custo
         greeting_text = f"Burning Midnight Oil, {selected_user} 🦉"
         sub_text = "Late-night caffeine grinding session."
 
-    fact = randfacts.get_fact()
-    
     html = f"""
     <div class="app-header-shell">
         <div class="app-header-greeting">
             <h2>{greeting_text}</h2>
-            <span>{sub_text} &bull; 🧠 <em>{fact[:90]}...</em></span>
+            <span>{sub_text}</span>
         </div>
         <div class="app-header-badges">
             <div class="header-pill-badge" title="Active Streak">
@@ -999,6 +1131,17 @@ def render_app_header(selected_user="Cris", coin_balance=0, streak_days=0, custo
                 <span class="user-highlight">{selected_user}</span>
             </div>
         </div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+
+def render_daily_fact_quote():
+    """Renders a standalone, responsive trivia quote banner placed cleanly outside the header card."""
+    fact = randfacts.get_fact()
+    html = f"""
+    <div class="daily-fact-quote">
+        <span style="font-size: 1.1rem; line-height: 1;">🧠</span>
+        <div><strong>Daily Brew Trivia:</strong> <em>{fact}</em></div>
     </div>
     """
     st.markdown(html, unsafe_allow_html=True)
