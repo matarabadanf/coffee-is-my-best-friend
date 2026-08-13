@@ -798,16 +798,20 @@ import random
 def get_user_titles(user, trophies, return_all=False):
     titles = []
     
-    if trophies.get("caffeine_addict") == user: titles.append("☕ Caffeine Addict")
-    if trophies.get("tea_purist") == user: titles.append("🍵 Tea Purist")
+    # 1. Global Monarch Crowns
+    if trophies.get("caffeine_addict") == user: titles.append("👑 ☕ Caffeine Monarch")
+    if trophies.get("tea_purist") == user: titles.append("👑 🍵 Tea Monarch")
+    if trophies.get("ice_monarch") == user: titles.append("👑 🧊 Sub-Zero Monarch")
+    if trophies.get("combustion_monarch") == user: titles.append("👑 🔥 Combustion Monarch")
     
+    # 2. Historical & Record Badges
     lhs = trophies.get("longest_historical_streak")
     if lhs and isinstance(lhs, dict) and lhs.get("user") == user:
-        titles.append(f"🔥 Longest Streak ({lhs.get('days')} days)")
+        titles.append(f"🔥 Longest Streak ({lhs.get('days')}d)")
         
     mcid = trophies.get("most_coffees_in_a_day")
     if mcid and isinstance(mcid, dict) and mcid.get("user") == user:
-        titles.append(f"🚀 Most in a Day ({mcid.get('count')})")
+        titles.append(f"🚀 Most in a Day ({mcid.get('count')} drinks)")
         
     fs = trophies.get("funny_stats", {})
     if fs.get("night_owl") == user: titles.append("🦉 Night Owl")
@@ -833,22 +837,52 @@ def get_user_titles(user, trophies, return_all=False):
     if wd and isinstance(wd, dict) and wd.get("user") == user: titles.append("👔 Weekday Warrior")
     
     ds = trophies.get("dry_spell")
-    if ds and isinstance(ds, dict) and ds.get("user") == user: titles.append("🏜️ Longest Dry Spell")
+    if ds and isinstance(ds, dict) and ds.get("user") == user: titles.append("🏜️ Desert Survivor")
     
     mo = trophies.get("midnight_oil")
     if mo and isinstance(mo, dict) and mo.get("user") == user: titles.append("🕯️ Midnight Oil")
     
     mono = trophies.get("monogamist")
-    if mono and isinstance(mono, dict) and mono.get("user") == user: titles.append(f"💍 The Monogamist")
+    if mono and isinstance(mono, dict) and mono.get("user") == user: titles.append("💍 The Monogamist")
     
     asl = trophies.get("afternoon_slump")
     if asl and isinstance(asl, dict) and asl.get("user") == user: titles.append("😴 Afternoon Slump")
+
+    # 3. Unlocked Personal Achievement Badges (Mastery Tracks)
+    user_ach = trophies.get("personal_achievements", {}).get(user, {})
+    for cat_key, cat_data in user_ach.items():
+        cat_icon = cat_data.get("icon", "🎖️")
+        for tier in cat_data.get("tiers", []):
+            if tier.get("unlocked"):
+                t_name = f"{cat_icon} {tier['name']} ({tier['level']})"
+                if t_name not in titles:
+                    titles.append(t_name)
+
+    # 4. Unlocked Arcane Secret Feats
+    user_sec = trophies.get("secret_feats", {}).get(user, {})
+    for feat in SECRET_FEATS:
+        if user_sec.get(feat["id"]):
+            s_name = f"🕵️ {feat['title']}"
+            if s_name not in titles:
+                titles.append(s_name)
+
+    # 5. Base Starter Badges
+    base_titles = [
+        "☕ Caffeine Fiend",
+        "🍵 Tea Connoisseur",
+        "🥛 Oat Milk Fanatic",
+        "⚡ Velocity Pilot",
+        "🌱 Eco Brewer"
+    ]
+    for bt in base_titles:
+        if bt not in titles:
+            titles.append(bt)
     
     if return_all:
         return titles
         
     if not titles:
-        return "Alicia would not be proud"
+        return "☕ Caffeine Fiend"
         
     return random.choice(titles)
 

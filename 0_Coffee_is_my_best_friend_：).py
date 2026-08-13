@@ -48,7 +48,11 @@ active_perks = get_active_perks(transactions, users)
 user_coins = coin_balances.get(selected_user, 0)
 user_streak = trophies.get("streaks", {}).get(selected_user, 0)
 user_emoji = prefs.get(selected_user, {}).get("emoji", "☕")
-user_title = prefs.get(selected_user, {}).get("title") or get_user_titles(selected_user, trophies)
+user_title_raw = prefs.get(selected_user, {}).get("title")
+if not user_title_raw or "Random" in user_title_raw:
+    user_title = get_user_titles(selected_user, trophies, return_all=False)
+else:
+    user_title = user_title_raw
 
 # --- 1. Top Status App Header ---
 render_app_header(

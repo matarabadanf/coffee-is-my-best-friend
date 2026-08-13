@@ -25,7 +25,11 @@ inject_custom_css(user_theme, user_style)
 balance = coin_balances.get(selected_user, 0)
 user_streak = trophies.get("streaks", {}).get(selected_user, 0)
 user_emoji = prefs.get(selected_user, {}).get("emoji", "☕")
-user_title = prefs.get(selected_user, {}).get("title") or get_user_titles(selected_user, trophies)
+user_title_raw = prefs.get(selected_user, {}).get("title")
+if not user_title_raw or "Random" in user_title_raw:
+    user_title = get_user_titles(selected_user, trophies, return_all=False)
+else:
+    user_title = user_title_raw
 
 # Native App Header
 render_app_header(
@@ -98,25 +102,45 @@ with st.container(border=True):
 
     st.caption("💡 *Looking for more themes? Unlock Caramel Macchiato, Strawberry Frappé, Taro Boba, Cyber Brew, and Velvet Mocha in the **🎨 Theme Shop**!*")
 
-st.header("🏷️ Profile")
+st.header("🏷️ Profile & Badges")
 with st.container(border=True):
-    emoji = st.text_input("Profile Emoji (1 character)", max_chars=2, value="☕")
-    available_titles = ["Caffeine Fiend", "Tea Connoisseur", "Water Drinker"] # Placeholder
-    for t in earned_titles:
-        if t not in available_titles:
-            available_titles.insert(0, t)
+    p_col1, p_col2 = st.columns([1, 2])
+    with p_col1:
+        current_emoji = prefs.get(selected_user, {}).get("emoji", "☕")
+        emoji = st.text_input("Avatar Emoji", max_chars=2, value=current_emoji, help="Single character/emoji representing you.")
+    
+    with p_col2:
+        current_title = prefs.get(selected_user, {}).get("title")
         
-    title = st.selectbox("Active Title", list(set(available_titles)))
-    if st.button("Save Profile"):
-        insert_transaction(selected_user, 0, "preference", {"emoji": emoji, "title": title})
-        st.success("Profile saved!")
+        # Build titles list: Random Option first, then earned crowns, tier achievements, secrets, and base tags
+        random_option = "🎲 Random Mystery Tag (Changes Every Visit)"
+        title_options = [random_option] + earned_titles
+        
+        if not current_title or current_title not in title_options:
+            default_idx = 0
+        else:
+            default_idx = title_options.index(current_title)
+            
+        selected_title = st.selectbox(
+            "Active Title / Badge", 
+            title_options, 
+            index=default_idx,
+            help="Showcase your unlocked achievements, monarch crowns, secret feats, or pick Random!"
+        )
+        
+    st.caption(f"🏆 *You have **{len(earned_titles)}** unique titles and achievement badges unlocked!*")
+    
+    if st.button("Save Profile Settings", use_container_width=True):
+        insert_transaction(selected_user, 0, "preference", {"emoji": emoji, "title": selected_title})
+        st.success("Profile saved! Refreshing...")
+        st.rerun()
 
-st.header("🎒 Inventory")
+st.header("🎒 Active Inventory & Perks")
 with st.container(border=True):
     user_perks = active_perks.get(selected_user, [])
     if not user_perks:
-        st.info("You don't have any active perks.")
+        st.info("You don't have any active perks. Visit the **🛒 Shop** to equip streak freezes and boosts!")
     else:
         for perk in user_perks:
-            st.markdown(f"- **{perk['item']}** (Expires: {pd.to_datetime(perk['expires_at']).strftime('%b %d, %H:%M') if perk['expires_at'] else 'Never'})")
+            st.markdown(f"- **{perk['item']}** (Expires: {pd.to_datetime(perk['expires_at']).strftime('%b %d, %H:%M') if perk.get('expires_at') else 'Never'})")
 
