@@ -886,6 +886,14 @@ def get_user_titles(user, trophies, return_all=False):
         
     return random.choice(titles)
 
+def resolve_user_title(user, prefs, trophies):
+    """Resolves the active displayed profile title, dynamically rolling a random unlocked title if 'Random' is selected."""
+    user_pref = prefs.get(user, {}) if prefs else {}
+    raw_title = user_pref.get("title")
+    if not raw_title or "Random" in raw_title or "🎲" in raw_title:
+        return get_user_titles(user, trophies, return_all=False)
+    return raw_title
+
 def get_coin_balances(df, transactions, users):
     balances = {u: 0 for u in users}
     

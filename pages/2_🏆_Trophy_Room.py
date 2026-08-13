@@ -7,6 +7,7 @@ from data_processing import (
     process_raw_data, 
     get_gamification_metrics, 
     get_user_titles, 
+    resolve_user_title,
     get_user_preferences, 
     get_coin_balances,
     ACHIEVEMENT_TIERS,
@@ -36,11 +37,7 @@ coin_balances = get_coin_balances(df, transactions, users)
 user_coins = coin_balances.get(selected_user, 0)
 user_streak = trophies.get("streaks", {}).get(selected_user, 0)
 user_emoji = prefs.get(selected_user, {}).get("emoji", "☕")
-user_title_raw = prefs.get(selected_user, {}).get("title")
-if not user_title_raw or "Random" in user_title_raw:
-    user_title = get_user_titles(selected_user, trophies, return_all=False)
-else:
-    user_title = user_title_raw
+user_title = resolve_user_title(selected_user, prefs, trophies)
 
 # --- 1. Persistent Top Bar ---
 render_app_header(

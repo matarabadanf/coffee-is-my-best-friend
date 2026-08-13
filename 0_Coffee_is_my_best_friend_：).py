@@ -9,6 +9,7 @@ from data_processing import (
     process_raw_data, 
     get_gamification_metrics, 
     get_user_titles, 
+    resolve_user_title,
     get_coin_balances, 
     get_active_perks, 
     get_user_preferences
@@ -48,11 +49,7 @@ active_perks = get_active_perks(transactions, users)
 user_coins = coin_balances.get(selected_user, 0)
 user_streak = trophies.get("streaks", {}).get(selected_user, 0)
 user_emoji = prefs.get(selected_user, {}).get("emoji", "☕")
-user_title_raw = prefs.get(selected_user, {}).get("title")
-if not user_title_raw or "Random" in user_title_raw:
-    user_title = get_user_titles(selected_user, trophies, return_all=False)
-else:
-    user_title = user_title_raw
+user_title = resolve_user_title(selected_user, prefs, trophies)
 
 # --- 1. Top Status App Header ---
 render_app_header(
@@ -253,7 +250,7 @@ for idx, user in enumerate(users):
     t_score = tea_scores.get(user, 0)
     
     user_pref = prefs.get(user, {})
-    custom_title = user_pref.get("title") or get_user_titles(user, trophies)
+    custom_title = resolve_user_title(user, prefs, trophies)
     custom_emoji = user_pref.get("emoji", "☕")
     
     # Calculate user's today caffeine
