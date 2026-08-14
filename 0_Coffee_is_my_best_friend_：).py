@@ -85,6 +85,9 @@ render_app_header(
 # --- 1.1 Standalone Daily Trivia Quote (Outside the header box) ---
 render_daily_fact_quote()
 
+# --- Time Context (with simulation support) ---
+now = get_current_madrid_time()
+
 # --- 📜 COMPREHENSIVE DROP 1 & UI 2.0 PATCH NOTES ---
 with st.expander("🎉 **Drop 1 Patch Notes — World Explorer & UI 2.0 (Tap to expand)**", expanded=False):
     pn1, pn2, pn3 = st.columns(3)
