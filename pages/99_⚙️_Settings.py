@@ -4,7 +4,14 @@ import pandas as pd
 from database import get_data, get_transactions, insert_transaction
 from data_processing import process_raw_data, get_coin_balances, get_gamification_metrics, get_user_titles, resolve_user_title, get_active_perks, get_user_preferences, get_unlocked_themes
 from utils import verify_pin, is_pin_verified, enforce_user_identity
-from world_data import get_country_options, get_option_from_code, get_country_code_from_option, get_user_default_country
+from world_data import (
+    TRAVEL_COUNTRIES, 
+    get_country_options, 
+    get_option_from_code, 
+    get_country_code_from_option, 
+    get_user_default_country,
+    get_flag_img_html
+)
 from components.ui import inject_custom_css, render_app_header
 
 st.set_page_config(page_title="Settings", page_icon="⚙️", layout="wide")
@@ -138,6 +145,7 @@ with st.container(border=True):
     st.caption("Your default physical location for drink logs and home passport registry.")
     
     default_country_code = prefs.get(selected_user, {}).get("default_country", get_user_default_country(selected_user))
+    st.caption(f"Current Home Base: {get_flag_img_html(default_country_code, 20, 14)} **{TRAVEL_COUNTRIES.get(default_country_code, {}).get('name', default_country_code)}**", unsafe_allow_html=True)
     default_option = get_option_from_code(default_country_code)
     all_options = get_country_options()
     

@@ -6,6 +6,7 @@ from world_data import (
     DEFAULT_COUNTRY, 
     get_user_default_country,
     get_option_from_code,
+    get_flag_img_html,
     compute_passport_stats, 
     get_travel_leaderboard
 )
@@ -172,7 +173,7 @@ else:
         
         with stamp_cols[idx % 4]:
             with st.container(border=True):
-                st.markdown(f"### {info['flag']} {info['name']}")
+                st.markdown(f"### {get_flag_img_html(code, 26, 20)} {info['name']}", unsafe_allow_html=True)
                 if is_home:
                     st.caption(f"🏠 **Home Base** &bull; `{cnt}` drinks")
                 else:

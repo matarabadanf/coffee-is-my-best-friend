@@ -15,7 +15,14 @@ from data_processing import (
     get_user_preferences
 )
 from utils import enforce_user_identity
-from world_data import get_country_options, get_option_from_code, get_country_code_from_option, get_user_default_country
+from world_data import (
+    TRAVEL_COUNTRIES, 
+    get_country_options, 
+    get_option_from_code, 
+    get_country_code_from_option, 
+    get_user_default_country,
+    get_flag_img_html
+)
 from feature_flags import is_unlocked, is_dev_mode
 from components.ui import (
     inject_custom_css, 
@@ -210,6 +217,7 @@ else:
         help="Select the country where you are physically drinking this cup."
     )
     selected_country_code = get_country_code_from_option(selected_option)
+    st.caption(f"📍 Logging from: {get_flag_img_html(selected_country_code, 20, 14)} **{TRAVEL_COUNTRIES[selected_country_code]['name']}**", unsafe_allow_html=True)
 
     b_col1, b_col2 = st.columns(2)
     

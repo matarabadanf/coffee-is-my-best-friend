@@ -251,6 +251,12 @@ def get_option_from_code(code: str) -> str:
     info = TRAVEL_COUNTRIES.get(code, TRAVEL_COUNTRIES[DEFAULT_COUNTRY])
     return f"{info['flag']} {info['name']}"
 
+def get_flag_img_html(code: str, width: int = 24, height: int = 18) -> str:
+    """Returns an HTML img tag from flagcdn for crisp flag visuals across all browsers."""
+    c = code.lower()
+    return f'<img src="https://flagcdn.com/w40/{c}.png" width="{width}" height="{height}" style="vertical-align: -2px; margin-right: 6px; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.18);" alt="{code}"/>'
+
+
 def compute_passport_stats(transactions: list[dict], user: str, default_country: str) -> dict:
     """Compute travel passport statistics from coin_transactions for a specific user."""
     countries_visited = set()

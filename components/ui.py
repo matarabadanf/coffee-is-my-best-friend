@@ -344,6 +344,13 @@ def inject_custom_css(theme="Latte (Light)", ui_style="Modern Flat"):
     # 4. Master CSS with Clean CSS Custom Properties
     css = f"""
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    @import url('https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css');
+
+    @font-face {{
+        font-family: "Twemoji Country Flags";
+        src: url("https://cdn.jsdelivr.net/npm/country-flag-emoji-polyfill@0.1.8/dist/TwemojiCountryFlags.woff2") format("woff2");
+        font-display: swap;
+    }}
 
     :root {{
         --bg-gradient: {t['bg_gradient']};
@@ -371,9 +378,9 @@ def inject_custom_css(theme="Latte (Light)", ui_style="Modern Flat"):
         --neu-border: {t['neu_border']};
     }}
 
-    /* Global Typography & Font Family */
-    html, body, [class*="css"] {{
-        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    /* Global Typography & Font Family with Full Country Flag Support on Windows */
+    html, body, [class*="css"], .stSelectbox, .stSelectbox *, div[data-baseweb="select"], div[data-baseweb="select"] *, div[data-testid="stSelectbox"] *, select, option, input, button, p, span, h1, h2, h3, h4, h5, h6 {{
+        font-family: 'Plus Jakarta Sans', 'Twemoji Country Flags', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif !important;
     }}
 
     /* Hide Streamlit default top branding decorations */
