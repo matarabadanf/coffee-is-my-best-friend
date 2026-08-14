@@ -354,14 +354,6 @@ else:
                 st.session_state["celebration_unlocks"] = compute_new_unlocks("Fer", {"tiers": set(), "secrets": set(), "crowns": set()}, {"tiers": set(), "secrets": set(), "crowns": set()}, is_dev_test=True)
                 st.rerun()
 
-    # Developer Preview Sandbox Trigger for Fer
-    if selected_user == "Fer":
-        with st.expander("🛠️ Developer Sandbox: Test Unlock Celebration Popup", expanded=False):
-            st.caption("Trigger a simulated level up & achievement popup to preview the celebratory UI, animations, bonus coin grants, and 1-tap badge equipping.")
-            if st.button("🧪 Test-Fire Level Up Modal", key="dev_test_modal_btn", use_container_width=True):
-                st.session_state["celebration_unlocks"] = compute_new_unlocks("Fer", {"tiers": set(), "secrets": set(), "crowns": set()}, {"tiers": set(), "secrets": set(), "crowns": set()}, is_dev_test=True)
-                st.rerun()
-
 st.divider()
 
 # --- 3. Today's Scoreboard & Caffeine Meter ---
