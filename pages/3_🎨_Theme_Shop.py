@@ -5,7 +5,7 @@ import altair as alt
 import datetime
 import time
 
-from database import get_data, get_transactions, insert_transaction
+from database import get_data, get_transactions, insert_transaction, get_preferences, save_user_preference
 from data_processing import process_raw_data, get_coin_balances, get_user_preferences, get_unlocked_themes
 from utils import verify_pin, is_pin_verified, enforce_user_identity
 from components.ui import inject_custom_css, ALL_THEMES, ALL_STYLES, THEME_METADATA
@@ -17,8 +17,9 @@ selected_user = enforce_user_identity(users)
 
 data = get_data()
 transactions = get_transactions()
+db_prefs = get_preferences()
 
-prefs = get_user_preferences(transactions, users)
+prefs = get_user_preferences(transactions, users, db_preferences=db_prefs)
 user_theme = prefs.get(selected_user, {}).get("theme", "Latte (Light)")
 user_style = prefs.get(selected_user, {}).get("ui_style", "Modern Flat")
 
@@ -127,7 +128,7 @@ with st.container(border=True):
                     st.error(f"❌ Not enough coins! You have 🪙 {balance:,} but need 🪙 {price:,}.")
                 elif verify_pin(selected_user, pin_input):
                     insert_transaction(selected_user, -price, "shop", {"theme_unlock": preview_theme, "item": f"theme_{preview_theme}"})
-                    insert_transaction(selected_user, 0, "preference", {"theme": preview_theme, "ui_style": preview_style})
+                    save_user_preference(selected_user, {"theme": preview_theme, "ui_style": preview_style})
                     st.balloons()
                     st.success(f"🎉 Unlocked and equipped **{preview_theme}**!")
                     time.sleep(1.2)
@@ -243,10 +244,8 @@ for idx, (t_name, meta) in enumerate(THEME_METADATA.items()):
                                     "shop", 
                                     {"theme_unlock": t_name, "item": f"theme_{t_name}"}
                                 )
-                                insert_transaction(
+                                save_user_preference(
                                     selected_user, 
-                                    0, 
-                                    "preference", 
                                     {"theme": t_name, "ui_style": preview_style}
                                 )
                                 st.session_state.theme_shop_picker = t_name

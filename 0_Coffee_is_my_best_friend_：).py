@@ -4,7 +4,7 @@ from datetime import datetime
 import time
 
 # Import refactored modules
-from database import get_data, insert_click, get_transactions, insert_transaction
+from database import get_data, insert_click, get_transactions, insert_transaction, get_preferences
 from data_processing import (
     process_raw_data, 
     get_gamification_metrics, 
@@ -33,9 +33,10 @@ selected_user = enforce_user_identity(users)
 # 2. Data Fetching & Processing
 data = get_data()
 transactions = get_transactions()
+db_prefs = get_preferences()
 df, df_coffee, df_tea, coffee_scores, tea_scores = process_raw_data(data, users)
 
-prefs = get_user_preferences(transactions, users)
+prefs = get_user_preferences(transactions, users, db_preferences=db_prefs)
 user_theme = prefs.get(selected_user, {}).get("theme", "Latte (Light)")
 user_style = prefs.get(selected_user, {}).get("ui_style", "Modern Flat")
 
