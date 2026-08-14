@@ -44,42 +44,106 @@ def get_user_achievement_snapshot(user, df_coffee, df_tea, transactions, users):
         "trophies": trophies
     }
 
-def compute_new_unlocks(user, before_snapshot, after_snapshot, is_dev_test=False):
+def get_dev_test_payload(user):
+    """Test payload for basic dev unlock demonstration."""
+    return [{
+        "type": "dev_test",
+        "category": "🛠️ DEV PREVIEW UNLOCK PROTOCOL",
+        "title": "🧪 Quantum Brew Pioneer",
+        "tier": "Legendary",
+        "icon": "🧪",
+        "badge": "🧪 Quantum Brew Pioneer",
+        "desc": "Triggered real-time quantum beverage synthesis in Developer Preview mode. All systems nominal!",
+        "reward_coins": 100,
+        "can_equip_title": True,
+        "title_to_equip": "🧪 Quantum Brew Pioneer"
+    }]
+
+def get_tier_upgrade_test_payload(user):
+    """Test payload demonstrating a badge tier upgrade from Silver to Gold."""
+    return [{
+        "type": "tier",
+        "is_upgrade": True,
+        "category": "🎖️ BADGE TIER UPGRADE!",
+        "title": "🚇 Metropolitan (Gold)",
+        "tier": "Gold",
+        "icon": "🚇",
+        "badge": "🚇 Metropolitan (Gold)",
+        "previous_tier": "🚲 City Hopper (Silver)",
+        "desc": "Advanced from 🚲 City Hopper (Silver) to 🚇 Metropolitan (Gold)! You have logged drinks across 18 unique cities!",
+        "reward_coins": 150,
+        "can_equip_title": True,
+        "title_to_equip": "🚇 Metropolitan (Gold)"
+    }]
+
+def get_ui_2_0_welcome_payload(user):
+    """Interactive tour and celebration welcome for UI 2.0."""
+    return [{
+        "type": "ui_2_0_welcome",
+        "category": "✨ WELCOME TO COFFEE V2.0! ✨",
+        "title": "🌟 UI 2.0 Pioneer",
+        "tier": "Special",
+        "icon": "🚀",
+        "badge": "🌟 UI 2.0 Pioneer",
+        "desc": (
+            "Welcome to the next generation of Coffee is my best friend! "
+            "Explore 8 boutique themes, glassmorphism & neumorphism aesthetics, "
+            "the world explorer coffee passport, live unlock celebrations, and instant badge equipping!"
+        ),
+        "features": [
+            ("🎨 Theme Boutique & Morphism", "Glassmorphism, Neumorphism, and 8 handcrafted color palettes."),
+            ("🌍 World Explorer & Passport", "Track visits across countries and cities with interactive beverage maps."),
+            ("🎉 Unlock Celebrations", "Live modal alerts, badge celebrations, and secret arcane feats."),
+            ("🔒 Privacy & Identity", "Real-time feed broadcast controls, custom avatars, and dedicated preferences.")
+        ],
+        "reward_coins": 100,
+        "can_equip_title": True,
+        "title_to_equip": "🌟 UI 2.0 Pioneer"
+    }]
+
+def compute_new_unlocks(user, before_snapshot, after_snapshot, is_dev_test=False, transactions=None):
     """
-    Compares snapshots and returns a list of celebration items.
+    Compares snapshots and returns a list of celebration items with weekly crown limits and upgrade detection.
     """
     unlocks = []
     
     # Dev test trigger for Fer (or dev mode testing)
     if is_dev_test and user == "Fer":
-        unlocks.append({
-            "type": "dev_test",
-            "category": "🛠️ DEV PREVIEW UNLOCK PROTOCOL",
-            "title": "🧪 Quantum Brew Pioneer",
-            "tier": "Legendary",
-            "icon": "🚀",
-            "badge": "🧪 Quantum Brew Pioneer",
-            "desc": "Triggered real-time quantum beverage synthesis in Developer Preview mode. All systems nominal!",
-            "reward_coins": 100,
-            "can_equip_title": True,
-            "title_to_equip": "🧪 Quantum Brew Pioneer"
-        })
+        unlocks.extend(get_dev_test_payload(user))
         
-    # 1. New Tiers
+    # 1. New Tiers & Tier Upgrades
     new_tiers = after_snapshot["tiers"] - before_snapshot["tiers"]
+    # Map before_snapshot tiers by track_id to detect upgrades
+    prev_track_tiers = {}
+    for track_id, level, name in before_snapshot["tiers"]:
+        prev_track_tiers[track_id] = (level, name)
+
     for track_id, level, name in new_tiers:
         coins = 50 if level in ["Bronze", "Silver"] else (100 if level == "Gold" else 200)
+        
+        is_upgrade = track_id in prev_track_tiers
+        prev_level, prev_name = prev_track_tiers.get(track_id, (None, None))
+        
+        category = "🎖️ BADGE TIER UPGRADE!" if is_upgrade else "🎖️ ACHIEVEMENT TIER UNLOCKED!"
+        desc = (
+            f"Advanced from {prev_name} ({prev_level}) to {name} ({level}) in {track_id.replace('_', ' ').title()}!"
+            if is_upgrade else
+            f"New mastery unlocked in {track_id.replace('_', ' ').title()}! Progressing towards the next milestone!"
+        )
+        
         unlocks.append({
             "type": "tier",
-            "category": "🎖️ ACHIEVEMENT TIER UNLOCKED!",
-            "title": f"{level}: {name}",
+            "is_upgrade": is_upgrade,
+            "previous_tier": f"{prev_name} ({prev_level})" if is_upgrade else None,
+            "category": category,
+            "title": f"{name} ({level})",
             "tier": level,
             "icon": "🏆",
-            "badge": name,
-            "desc": f"New mastery unlocked in {track_id.replace('_', ' ').title()}! Progressing towards the next milestone!",
+            "badge": f"{name} ({level})",
+            "desc": desc,
             "reward_coins": coins,
             "can_equip_title": True,
-            "title_to_equip": name
+            "title_to_equip": f"{name} ({level})"
         })
         
     # 2. New Secret Feats
@@ -100,9 +164,32 @@ def compute_new_unlocks(user, before_snapshot, after_snapshot, is_dev_test=False
             "title_to_equip": f_info["title"]
         })
         
-    # 3. New Monarch Crowns
+    # 3. New Monarch Crowns (Weekly Coin Bonus awarded ONLY first time per calendar week)
     new_crowns = after_snapshot["crowns"] - before_snapshot["crowns"]
+    current_week_str = pd.Timestamp.now().strftime("%Y-W%W")
+    
     for crown in new_crowns:
+        # Check if user already received bonus coins for this crown during current calendar week
+        already_rewarded_this_week = False
+        if transactions:
+            for t in transactions:
+                if t.get("user_name") == user and t.get("transaction_type") == "shop":
+                    meta = t.get("metadata", {})
+                    if isinstance(meta, dict):
+                        if meta.get("monarch_week") == f"{crown}_{current_week_str}":
+                            already_rewarded_this_week = True
+                            break
+                        if meta.get("item") == f"reward_monarch_{crown}_{current_week_str}":
+                            already_rewarded_this_week = True
+                            break
+
+        reward_coins = 250 if not already_rewarded_this_week else 0
+        desc = (
+            f"You have claimed the sovereign throne as {crown}!" 
+            if not already_rewarded_this_week else 
+            f"You have claimed the sovereign throne as {crown}! (Weekly +250 🪙 bonus already collected this week)"
+        )
+        
         unlocks.append({
             "type": "monarch",
             "category": "👑 GLOBAL MONARCH CROWN CLAIMED!",
@@ -110,8 +197,10 @@ def compute_new_unlocks(user, before_snapshot, after_snapshot, is_dev_test=False
             "tier": "Monarch",
             "icon": "👑",
             "badge": crown,
-            "desc": f"You have claimed the sovereign throne as {crown}!",
-            "reward_coins": 250,
+            "desc": desc,
+            "reward_coins": reward_coins,
+            "monarch_week": f"{crown}_{current_week_str}",
+            "reward_item_key": f"reward_monarch_{crown}_{current_week_str}",
             "can_equip_title": True,
             "title_to_equip": crown
         })
@@ -150,8 +239,33 @@ def _render_celebration_content(user, items):
         desc = item.get("desc", "")
         coins = item.get("reward_coins", 0)
         title_to_equip = item.get("title_to_equip")
+        is_upgrade = item.get("is_upgrade", False)
+        prev_tier = item.get("previous_tier")
+        features = item.get("features", [])
         
         with st.container(border=True):
+            if is_upgrade and prev_tier:
+                st.markdown(f"""
+                <div style="
+                    background: rgba(226, 74, 0, 0.08); 
+                    border: 1px solid var(--accent-color, #E24A00); 
+                    border-radius: 10px; 
+                    padding: 6px 12px; 
+                    margin-bottom: 10px; 
+                    font-size: 0.85rem; 
+                    font-weight: 700;
+                    color: var(--accent-color, #E24A00);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                ">
+                    <span>⬆️ TIER UPGRADE:</span>
+                    <span style="text-decoration: line-through; opacity: 0.7;">{prev_tier}</span>
+                    <span>➔</span>
+                    <span style="font-weight: 800;">{title}</span>
+                </div>
+                """, unsafe_allow_html=True)
+
             col_icon, col_txt = st.columns([1, 4])
             with col_icon:
                 st.markdown(f"""
@@ -177,6 +291,16 @@ def _render_celebration_content(user, items):
                 st.markdown(f"*{desc}*")
                 if coins > 0:
                     st.markdown(f"🪙 **Bonus Reward:** `+{coins:,} Coins`")
+
+            # If UI 2.0 Welcome, render interactive highlights
+            if features:
+                st.divider()
+                st.markdown("#### 🚀 What's New in UI 2.0:")
+                f_col1, f_col2 = st.columns(2)
+                for f_idx, (f_title, f_desc) in enumerate(features):
+                    with (f_col1 if f_idx % 2 == 0 else f_col2):
+                        st.markdown(f"**{f_title}**")
+                        st.caption(f_desc)
 
             # Action Buttons
             btn_col1, btn_col2 = st.columns([1.2, 1])
@@ -208,3 +332,4 @@ def trigger_celebration_popup_if_pending(user):
     if "celebration_unlocks" in st.session_state and st.session_state["celebration_unlocks"]:
         items = list(st.session_state["celebration_unlocks"])
         _render_dialog_modal(user, items)
+

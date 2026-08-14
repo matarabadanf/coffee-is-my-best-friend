@@ -110,10 +110,10 @@ ACHIEVEMENT_TIERS = {
         "icon": "🏆",
         "desc": "Overall drinks logged (Coffee + Tea, Hot + Iced).",
         "tiers": [
-            {"level": "Bronze", "name": "Daily Sipper", "target": 100},
-            {"level": "Silver", "name": "Café Regular", "target": 350},
-            {"level": "Gold", "name": "Beverage Devotee", "target": 750},
-            {"level": "Diamond", "name": "Beverage Titan", "target": 1500},
+            {"level": "Bronze", "name": "🥤 Daily Sipper", "target": 100},
+            {"level": "Silver", "name": "☕ Café Regular", "target": 350},
+            {"level": "Gold", "name": "🎖️ Beverage Devotee", "target": 750},
+            {"level": "Diamond", "name": "🏆 Beverage Titan", "target": 1500},
         ]
     },
     "coffee": {
@@ -121,10 +121,10 @@ ACHIEVEMENT_TIERS = {
         "icon": "☕",
         "desc": "Total coffee cups consumed.",
         "tiers": [
-            {"level": "Bronze", "name": "Bean Novice", "target": 150},
-            {"level": "Silver", "name": "Barista Artisan", "target": 400},
-            {"level": "Gold", "name": "Espresso Virtuoso", "target": 750},
-            {"level": "Diamond", "name": "Coffee Monarch", "target": 1500},
+            {"level": "Bronze", "name": "☕ Bean Novice", "target": 150},
+            {"level": "Silver", "name": "☕ Barista Artisan", "target": 400},
+            {"level": "Gold", "name": "☕ Espresso Virtuoso", "target": 750},
+            {"level": "Diamond", "name": "👑 Coffee Monarch", "target": 1500},
         ]
     },
     "tea": {
@@ -132,10 +132,10 @@ ACHIEVEMENT_TIERS = {
         "icon": "🍵",
         "desc": "Total tea brews consumed.",
         "tiers": [
-            {"level": "Bronze", "name": "Leaf Initiate", "target": 50},
-            {"level": "Silver", "name": "Herbal Sage", "target": 125},
-            {"level": "Gold", "name": "Matcha Alchemist", "target": 250},
-            {"level": "Diamond", "name": "Zen Monarch", "target": 500},
+            {"level": "Bronze", "name": "🍃 Leaf Initiate", "target": 50},
+            {"level": "Silver", "name": "🌿 Herbal Sage", "target": 125},
+            {"level": "Gold", "name": "🍵 Matcha Alchemist", "target": 250},
+            {"level": "Diamond", "name": "👑 Zen Monarch", "target": 500},
         ]
     },
     "iced": {
@@ -143,10 +143,10 @@ ACHIEVEMENT_TIERS = {
         "icon": "🧊",
         "desc": "Total iced beverages consumed.",
         "tiers": [
-            {"level": "Bronze", "name": "Chilled Sipper", "target": 15},
-            {"level": "Silver", "name": "Ice Sculptor", "target": 50},
-            {"level": "Gold", "name": "Frost Titan", "target": 120},
-            {"level": "Diamond", "name": "Sub-Zero Monarch", "target": 250},
+            {"level": "Bronze", "name": "🧊 Chilled Sipper", "target": 15},
+            {"level": "Silver", "name": "❄️ Ice Sculptor", "target": 50},
+            {"level": "Gold", "name": "🧊 Frost Titan", "target": 120},
+            {"level": "Diamond", "name": "👑 Sub-Zero Monarch", "target": 250},
         ]
     },
     "streak": {
@@ -154,10 +154,10 @@ ACHIEVEMENT_TIERS = {
         "icon": "🔥",
         "desc": "Unbroken consecutive daily logging streak.",
         "tiers": [
-            {"level": "Bronze", "name": "Spark", "target": 7},
-            {"level": "Silver", "name": "Iron Flame", "target": 21},
-            {"level": "Gold", "name": "Unstoppable Blaze", "target": 45},
-            {"level": "Diamond", "name": "Eternal Inferno", "target": 90},
+            {"level": "Bronze", "name": "✨ Spark", "target": 7},
+            {"level": "Silver", "name": "🔥 Iron Flame", "target": 21},
+            {"level": "Gold", "name": "⚡ Unstoppable Blaze", "target": 45},
+            {"level": "Diamond", "name": "👑 Eternal Inferno", "target": 90},
         ]
     },
     "active_days": {
@@ -165,10 +165,10 @@ ACHIEVEMENT_TIERS = {
         "icon": "🗓️",
         "desc": "Total unique days with at least one logged drink.",
         "tiers": [
-            {"level": "Bronze", "name": "Habit Initiate", "target": 75},
-            {"level": "Silver", "name": "Steadfast Brewer", "target": 220},
-            {"level": "Gold", "name": "Centurion", "target": 350},
-            {"level": "Diamond", "name": "Bicentennial Legend", "target": 500},
+            {"level": "Bronze", "name": "🗓️ Habit Initiate", "target": 75},
+            {"level": "Silver", "name": "📅 Steadfast Brewer", "target": 220},
+            {"level": "Gold", "name": "💯 Centurion", "target": 350},
+            {"level": "Diamond", "name": "👑 Bicentennial Legend", "target": 500},
         ]
     },
     "early": {
@@ -176,10 +176,10 @@ ACHIEVEMENT_TIERS = {
         "icon": "🌅",
         "desc": "Early morning drinks logged before 09:00 AM.",
         "tiers": [
-            {"level": "Bronze", "name": "Sunrise Sipper", "target": 25},
-            {"level": "Silver", "name": "Early Rooster", "target": 60},
-            {"level": "Gold", "name": "Dawn Monarch", "target": 125},
-            {"level": "Diamond", "name": "Master of the Dawn", "target": 250},
+            {"level": "Bronze", "name": "🌅 Sunrise Sipper", "target": 25},
+            {"level": "Silver", "name": "🐓 Early Rooster", "target": 60},
+            {"level": "Gold", "name": "🌄 Dawn Monarch", "target": 125},
+            {"level": "Diamond", "name": "👑 Master of the Dawn", "target": 250},
         ]
     },
     "night": {
@@ -187,10 +187,10 @@ ACHIEVEMENT_TIERS = {
         "icon": "🦉",
         "desc": "Evening & late-night drinks logged after 19:00 PM.",
         "tiers": [
-            {"level": "Bronze", "name": "Dusk Drinker", "target": 30},
-            {"level": "Silver", "name": "Twilight Scholar", "target": 75},
-            {"level": "Gold", "name": "Midnight Monarch", "target": 150},
-            {"level": "Diamond", "name": "Creature of the Night", "target": 300},
+            {"level": "Bronze", "name": "🌆 Dusk Drinker", "target": 30},
+            {"level": "Silver", "name": "🌌 Twilight Scholar", "target": 75},
+            {"level": "Gold", "name": "🦉 Midnight Monarch", "target": 150},
+            {"level": "Diamond", "name": "👑 Creature of the Night", "target": 300},
         ]
     },
     "surge": {
@@ -198,10 +198,10 @@ ACHIEVEMENT_TIERS = {
         "icon": "⚡",
         "desc": "Days where 3 or more drinks were logged in 24 hours.",
         "tiers": [
-            {"level": "Bronze", "name": "Turbo Day", "target": 35},
-            {"level": "Silver", "name": "Overdrive", "target": 90},
-            {"level": "Gold", "name": "Hyper-Drive", "target": 175},
-            {"level": "Diamond", "name": "Supersonic Monarch", "target": 300},
+            {"level": "Bronze", "name": "🏎️ Turbo Day", "target": 35},
+            {"level": "Silver", "name": "⚡ Overdrive", "target": 90},
+            {"level": "Gold", "name": "🚀 Hyper-Drive", "target": 175},
+            {"level": "Diamond", "name": "👑 Supersonic Monarch", "target": 300},
         ]
     },
     "weekend": {
@@ -209,10 +209,10 @@ ACHIEVEMENT_TIERS = {
         "icon": "🏖️",
         "desc": "Total drinks logged on Saturdays and Sundays.",
         "tiers": [
-            {"level": "Bronze", "name": "Saturday Starter", "target": 50},
-            {"level": "Silver", "name": "Sunday Brewer", "target": 110},
-            {"level": "Gold", "name": "Weekend Warrior", "target": 200},
-            {"level": "Diamond", "name": "Weekend Monarch", "target": 350},
+            {"level": "Bronze", "name": "🏖️ Saturday Starter", "target": 50},
+            {"level": "Silver", "name": "⛵ Sunday Brewer", "target": 110},
+            {"level": "Gold", "name": "⚔️ Weekend Warrior", "target": 200},
+            {"level": "Diamond", "name": "👑 Weekend Monarch", "target": 350},
         ]
     },
     "combustion": {
@@ -220,10 +220,10 @@ ACHIEVEMENT_TIERS = {
         "icon": "🔥",
         "desc": "Days where daily caffeine velocity reached >= 400 mg (On-Fire state).",
         "tiers": [
-            {"level": "Bronze", "name": "Ignition Spark", "target": 1},
-            {"level": "Silver", "name": "Flamethrower", "target": 5},
-            {"level": "Gold", "name": "Inferno Beast", "target": 15},
-            {"level": "Diamond", "name": "Combustion Monarch", "target": 35},
+            {"level": "Bronze", "name": "💥 Ignition Spark", "target": 1},
+            {"level": "Silver", "name": "🔥 Flamethrower", "target": 5},
+            {"level": "Gold", "name": "🌋 Inferno Beast", "target": 15},
+            {"level": "Diamond", "name": "👑 Combustion Monarch", "target": 35},
         ]
     },
     "world_explorer": {
@@ -234,7 +234,7 @@ ACHIEVEMENT_TIERS = {
             {"level": "Bronze",  "name": "🗺️ First Stamp",       "target": 1},
             {"level": "Silver",  "name": "✈️ Frequent Flyer",     "target": 3},
             {"level": "Gold",    "name": "🌎 Globe Trotter",      "target": 8},
-            {"level": "Diamond", "name": "🗺️ World Traveler",     "target": 15},
+            {"level": "Diamond", "name": "🌐 World Traveler",     "target": 15},
             {"level": "Master",  "name": "👑 Nomad Supreme",      "target": 25},
         ]
     },
@@ -348,6 +348,12 @@ SECRET_FEATS = [
         "title": "🌉 Twin Cities",
         "desc": "Log drinks in 2+ different cities within the same country.",
         "hint": "Two metropolises under one flag."
+    },
+    {
+        "id": "ui_2_0_pioneer",
+        "title": "🌟 UI 2.0 Pioneer",
+        "desc": "Stepped into the next generation of Coffee is my best friend with morphism themes, passport exploration, and live unlock celebrations.",
+        "hint": "Explore the newly unlocked realm of UI 2.0 and forge the frontier..."
     },
     {
         "id": "coffee_capital",
@@ -926,6 +932,7 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None):
         
         coffee_caps_count = sum(passport.get("city_counts", {}).get(k, 0) for k in passport.get("city_counts", {}) if is_coffee_capital(k[1]))
         user_secrets["coffee_capital"] = bool(len(passport.get("coffee_capitals_visited", set())) >= 2 or coffee_caps_count >= 3)
+        user_secrets["ui_2_0_pioneer"] = bool(not user_logs.empty or len(unlocked_set) > 1 or passport.get("countries_count", 0) > 0)
 
         trophies["secret_feats"][user] = user_secrets
 
@@ -992,7 +999,11 @@ def get_user_titles(user, trophies, return_all=False):
         cat_icon = cat_data.get("icon", "🎖️")
         for tier in cat_data.get("tiers", []):
             if tier.get("unlocked"):
-                t_name = f"{cat_icon} {tier['name']} ({tier['level']})"
+                tier_name = tier['name']
+                if any(ord(c) > 127 for c in tier_name[:2]):
+                    t_name = f"{tier_name} ({tier['level']})"
+                else:
+                    t_name = f"{cat_icon} {tier_name} ({tier['level']})"
                 if t_name not in titles:
                     titles.append(t_name)
 
@@ -1000,17 +1011,18 @@ def get_user_titles(user, trophies, return_all=False):
     user_sec = trophies.get("secret_feats", {}).get(user, {})
     for feat in SECRET_FEATS:
         if user_sec.get(feat["id"]):
-            s_name = f"🕵️ {feat['title']}"
+            s_name = feat["title"]
             if s_name not in titles:
                 titles.append(s_name)
 
-    # 5. Base Starter Badges
+    # 5. Base Starter Badges & Special Unlocks
     base_titles = [
         "☕ Caffeine Fiend",
         "🍵 Tea Connoisseur",
         "🥛 Oat Milk Fanatic",
         "⚡ Velocity Pilot",
-        "🌱 Eco Brewer"
+        "🌱 Eco Brewer",
+        "🌟 UI 2.0 Pioneer"
     ]
     for bt in base_titles:
         if bt not in titles:

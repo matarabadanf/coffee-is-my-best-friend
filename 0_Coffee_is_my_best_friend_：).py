@@ -37,7 +37,10 @@ from components.ui import (
 from components.celebrations import (
     get_user_achievement_snapshot, 
     compute_new_unlocks, 
-    trigger_celebration_popup_if_pending
+    trigger_celebration_popup_if_pending,
+    get_dev_test_payload,
+    get_tier_upgrade_test_payload,
+    get_ui_2_0_welcome_payload
 )
 
 # 1. Page Configuration
@@ -238,7 +241,13 @@ def handle_drink_log(drink_id, drink_name, temp_name, country_code, city_name):
 
         # Developer preview test trigger for Fer (to preview modal, animations, and title equipping)
         is_dev_test = bool(selected_user == "Fer")
-        new_unlocks = compute_new_unlocks(selected_user, before_snapshot, after_snapshot, is_dev_test=is_dev_test)
+        new_unlocks = compute_new_unlocks(
+            selected_user, 
+            before_snapshot, 
+            after_snapshot, 
+            is_dev_test=is_dev_test, 
+            transactions=fresh_tx
+        )
 
         if new_unlocks:
             st.session_state["celebration_unlocks"] = new_unlocks
@@ -248,7 +257,11 @@ def handle_drink_log(drink_id, drink_name, temp_name, country_code, city_name):
                         selected_user, 
                         item["reward_coins"], 
                         "shop", 
-                        {"item": f"reward_{item.get('title')}", "reward_unlock": item.get('title')}
+                        {
+                            "item": item.get("reward_item_key", f"reward_{item.get('title')}"), 
+                            "reward_unlock": item.get('title'),
+                            "monarch_week": item.get("monarch_week")
+                        }
                     )
 
         if "tea" in drink_name.lower():
@@ -274,44 +287,38 @@ else:
         default_option = get_option_from_code(default_country_code)
         all_options = get_country_options()
         
-        selected_option = st.selectbox(
-            "📍 Country:",
-            all_options,
+        selected_country_option = st.selectbox(
+            "🌍 Location (Country)", 
+            all_options, 
             index=all_options.index(default_option) if default_option in all_options else 0,
-            key="country_drink_selector",
-            help="Select the country where you are physically drinking this cup."
+            key="beverage_log_country_select",
+            help="Choose the country where you are enjoying your brew."
         )
-        selected_country_code = get_country_code_from_option(selected_option)
-
+        selected_country_code = get_country_code_from_option(selected_country_option)
+        
     with loc_c2:
-        country_cities = get_cities_for_country(selected_country_code)
-        user_default_city = prefs.get(selected_user, {}).get("default_city", get_user_default_city(selected_user))
+        default_city = prefs.get(selected_user, {}).get("default_city", get_user_default_city(selected_user))
+        available_cities = list(get_cities_for_country(selected_country_code))
+        if default_city and default_city not in available_cities and selected_country_code == default_country_code:
+            available_cities.insert(0, default_city)
+        available_cities.append("✍️ Custom City...")
         
-        city_options = list(country_cities)
-        if user_default_city and user_default_city not in city_options and selected_country_code == default_country_code:
-            city_options.insert(0, user_default_city)
-        city_options.append("✍️ Custom / Other City...")
-        
-        city_idx = 0
-        if selected_country_code == default_country_code and user_default_city in city_options:
-            city_idx = city_options.index(user_default_city)
-            
+        city_default_idx = available_cities.index(default_city) if default_city in available_cities else 0
         selected_city_choice = st.selectbox(
-            "🏙️ City:",
-            city_options,
-            index=city_idx,
-            key=f"city_drink_selector_{selected_country_code}",
-            help="Select or enter the city where you are physically drinking this cup."
+            "🏙️ City", 
+            available_cities, 
+            index=city_default_idx,
+            key=f"beverage_log_city_select_{selected_country_code}",
+            help="Choose or enter the city for this brew."
         )
         
-        if selected_city_choice == "✍️ Custom / Other City...":
-            custom_city_input = st.text_input("Enter City Name:", value="", placeholder="e.g. Kyoto, Oxford, Plzen...", key="custom_city_input")
-            selected_city = custom_city_input if custom_city_input.strip() else country_cities[0]
+        if selected_city_choice == "✍️ Custom City...":
+            custom_city_input = st.text_input("Enter City Name:", placeholder="e.g. Oxford, Florence, Kyoto...")
+            selected_city = custom_city_input.strip() if custom_city_input.strip() else available_cities[0]
         else:
             selected_city = selected_city_choice
-
+            
     selected_city = normalize_city_name(selected_city)
-    st.caption(f"📍 Logging from: {get_flag_img_html(selected_country_code, 20, 14)} **{selected_city}, {TRAVEL_COUNTRIES[selected_country_code]['name']}**", unsafe_allow_html=True)
 
     b_col1, b_col2 = st.columns(2)
     
@@ -343,13 +350,23 @@ else:
                 if st.button("🧊 Iced Tea", key="btn_iced_tea", use_container_width=True):
                     handle_drink_log(4, "Tea", "Iced", selected_country_code, selected_city)
 
-    # Developer Preview Sandbox Trigger for Fer
+    # Developer Preview Sandbox Triggers for Fer
     if selected_user == "Fer":
-        with st.expander("🛠️ Developer Sandbox: Test Unlock Celebration Popup", expanded=False):
-            st.caption("Trigger a simulated level up & achievement popup to preview the celebratory UI, animations, bonus coin grants, and 1-tap badge equipping.")
-            if st.button("🧪 Test-Fire Level Up Modal", key="dev_test_modal_btn", use_container_width=True):
-                st.session_state["celebration_unlocks"] = compute_new_unlocks("Fer", {"tiers": set(), "secrets": set(), "crowns": set()}, {"tiers": set(), "secrets": set(), "crowns": set()}, is_dev_test=True)
-                st.rerun()
+        with st.expander("🛠️ Developer Sandbox: Test Celebrations, Upgrades & UI 2.0 Tour", expanded=False):
+            st.caption("Trigger simulated unlock flows to test animations, tier upgrades, UI 2.0 tours, coin limits, and 1-tap badge equipping.")
+            s_btn1, s_btn2, s_btn3 = st.columns(3)
+            with s_btn1:
+                if st.button("🧪 Basic Unlock Modal", key="dev_test_modal_btn", use_container_width=True):
+                    st.session_state["celebration_unlocks"] = get_dev_test_payload("Fer")
+                    st.rerun()
+            with s_btn2:
+                if st.button("🎖️ Tier Upgrade Modal", key="dev_test_upgrade_btn", use_container_width=True):
+                    st.session_state["celebration_unlocks"] = get_tier_upgrade_test_payload("Fer")
+                    st.rerun()
+            with s_btn3:
+                if st.button("🌟 Welcome to UI 2.0 Tour", key="dev_test_ui2_btn", use_container_width=True):
+                    st.session_state["celebration_unlocks"] = get_ui_2_0_welcome_payload("Fer")
+                    st.rerun()
 
 st.divider()
 
