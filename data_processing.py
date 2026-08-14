@@ -1486,6 +1486,13 @@ def get_unlocked_themes(transactions, user):
     return [t for t in ALL_VALID_THEMES if t in unlocked]
 
 def get_user_preferences(transactions=None, users=None, db_preferences=None):
+    if db_preferences is None:
+        try:
+            from database import get_preferences
+            db_preferences = get_preferences()
+        except Exception:
+            db_preferences = []
+
     if users is None:
         users = ["Cris", "Bea", "Fer"]
         

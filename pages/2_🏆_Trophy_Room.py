@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # Import refactored modules
-from database import get_data, get_transactions
+from database import get_data, get_transactions, get_preferences
 from data_processing import (
     process_raw_data, 
     get_gamification_metrics, 
@@ -24,8 +24,9 @@ selected_user = enforce_user_identity(users)
 
 data = get_data()
 transactions = get_transactions()
+db_prefs = get_preferences()
 
-prefs = get_user_preferences(transactions, users)
+prefs = get_user_preferences(transactions, users, db_preferences=db_prefs)
 user_theme = prefs.get(selected_user, {}).get("theme", "Latte (Light)")
 user_style = prefs.get(selected_user, {}).get("ui_style", "Modern Flat")
 inject_custom_css(user_theme, user_style, user=selected_user)
