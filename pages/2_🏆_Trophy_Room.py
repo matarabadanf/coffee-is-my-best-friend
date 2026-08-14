@@ -93,7 +93,7 @@ with tab1:
     r1c1, r1c2, r1c3, r1c4 = st.columns(4)
     with r1c1:
         with st.container(border=True):
-            st.markdown("### 👑 Caffeine Emperor")
+            st.markdown("### 👑 Caffeine Monarch")
             addict = trophies.get("caffeine_addict")
             if addict:
                 u_em = prefs.get(addict, {}).get("emoji", "☕")
@@ -102,7 +102,7 @@ with tab1:
                 st.info("No coffee logged in the past 7 days.")
             st.caption("🏆 *Weekly Caffeine Champion*")
             
-            caff_hof = hof_data.get("caffeine_emperor", {}).get("hall_of_fame", [])
+            caff_hof = hof_data.get("caffeine_monarch", hof_data.get("caffeine_emperor", {})).get("hall_of_fame", [])
             if caff_hof:
                 st.markdown("<div style='font-size:0.82rem; margin-top:8px; line-height:1.45; border-top:1px dashed rgba(128,128,128,0.25); padding-top:6px;'><b>🏛️ Hall of Fame:</b></div>", unsafe_allow_html=True)
                 for entry in caff_hof:

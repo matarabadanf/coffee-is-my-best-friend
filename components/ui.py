@@ -1111,6 +1111,20 @@ def inject_custom_css(theme="Latte (Light)", ui_style="Modern Flat", user=None, 
         fill: var(--input-text) !important;
         stroke: none !important;
     }}
+
+    /* =========================================================
+       SIDEBAR CUSTOMIZATION & UTILITY SEPARATOR
+       Separates Theme Shop & Settings from Main Pages
+       ========================================================= */
+    div[data-testid="stSidebarNav"] li:has(a[href*="Theme_Shop"]),
+    div[data-testid="stSidebarNavItems"] li:has(a[href*="Theme_Shop"]),
+    div[data-testid="stSidebarNav"] li:has(a[href*="98_"]),
+    div[data-testid="stSidebarNavItems"] li:has(a[href*="98_"]) {{
+        margin-top: 20px !important;
+        padding-top: 14px !important;
+        border-top: 1px dashed var(--border-color) !important;
+        position: relative !important;
+    }}
     """
 
     st.markdown(

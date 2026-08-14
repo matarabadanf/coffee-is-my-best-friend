@@ -7,7 +7,7 @@ FEATURE_DROPS = {
         "date": "2026-08-15 00:00:00",
         "title": "🌍 World Update",
         "tagline": "Every cup has a story. Where were you?",
-        "pages": ["4_🌍_World_Explorer", "World_Explorer", "4_"],
+        "pages": ["3_🌍_World_Explorer", "World_Explorer", "3_🌍", "4_🌍_World_Explorer"],
     },
     "rpg_quests": {
         "date": "2026-09-27",
