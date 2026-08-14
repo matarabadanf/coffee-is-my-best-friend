@@ -27,6 +27,14 @@ def _save_geocode_cache():
 
 _load_geocode_cache()
 
+# User brand colors for map pins and UI elements (Fer is rebeccapurple)
+USER_MAP_COLORS = {
+    "Fer": "#663399",   # rebeccapurple
+    "Bea": "#F43F5E",   # Rose / Coral
+    "Cris": "#0284C7",  # Sky Blue
+    "All": "#D97706"    # Amber
+}
+
 class CountryInfo(TypedDict):
     name: str
     flag: str
@@ -573,8 +581,14 @@ def is_coffee_capital(city: str) -> bool:
     """Checks if a city is in the legendary coffee metropolises registry."""
     return normalize_city_name(city).lower() in FAMOUS_COFFEE_CITIES
 
-def compute_passport_stats(transactions: list[dict], user: str, default_country: str, default_city: str = None) -> dict:
-    """Compute comprehensive country and city travel passport statistics from coin_transactions."""
+def compute_passport_stats(
+    transactions: list[dict], 
+    user: str = None, 
+    default_country: str = None, 
+    default_city: str = None,
+    drink_type: str = "all"
+) -> dict:
+    """Compute comprehensive country and city travel passport statistics with multi-user & beverage filters."""
     countries_visited = set()
     continents_reached = set()
     cities_visited = set()
@@ -582,49 +596,79 @@ def compute_passport_stats(transactions: list[dict], user: str, default_country:
     total_logged_with_location = 0
     country_counts: dict[str, int] = {}
     city_counts: dict[tuple[str, str], int] = {}
+    city_users_breakdown: dict[tuple[str, str], dict[str, int]] = {}
     country_cities_map: dict[str, set[str]] = {}
     capital_cities_visited = set()
     coffee_capitals_visited = set()
 
-    def_city = default_city or get_user_default_city(user)
+    is_all_users = (user is None or user == "All" or user == "All Crew")
+    def_country = default_country or (get_user_default_country(user) if not is_all_users else DEFAULT_COUNTRY)
+    def_city = default_city or (get_user_default_city(user) if not is_all_users else "Madrid")
 
     if transactions:
         for tx in transactions:
-            if tx.get("user_name") == user and tx.get("transaction_type") == "drink_log":
-                meta = tx.get("metadata", {})
-                if not isinstance(meta, dict):
-                    continue
-                country_code = meta.get("country")
-                city_name = meta.get("city") or get_cities_for_country(country_code)[0] if country_code else None
+            if tx.get("transaction_type") != "drink_log":
+                continue
                 
-                if country_code and country_code in TRAVEL_COUNTRIES:
-                    norm_city = normalize_city_name(city_name)
-                    total_logged_with_location += 1
-                    countries_visited.add(country_code)
-                    continents_reached.add(TRAVEL_COUNTRIES[country_code]["continent"])
-                    
-                    if norm_city:
-                        cities_visited.add((country_code, norm_city))
-                        city_key = (country_code, norm_city)
-                        city_counts[city_key] = city_counts.get(city_key, 0) + 1
-                        
-                        if country_code not in country_cities_map:
-                            country_cities_map[country_code] = set()
-                        country_cities_map[country_code].add(norm_city)
+            tx_user = tx.get("user_name")
+            if not is_all_users and tx_user != user:
+                continue
 
-                        if is_capital_city(country_code, norm_city):
-                            capital_cities_visited.add((country_code, norm_city))
-                        if is_coffee_capital(norm_city):
-                            coffee_capitals_visited.add(norm_city)
+            meta = tx.get("metadata", {})
+            if not isinstance(meta, dict):
+                continue
 
-                    if country_code != default_country:
-                        drinks_abroad += 1
+            # Beverage Type Filtering
+            d_id = meta.get("drink_id")
+            d_name = str(meta.get("drink", "")).lower()
+            if drink_type == "coffee":
+                if d_id is not None and d_id not in [1, 3]:
+                    continue
+                if d_id is None and "coffee" not in d_name:
+                    continue
+            elif drink_type == "tea":
+                if d_id is not None and d_id not in [2, 4]:
+                    continue
+                if d_id is None and "tea" not in d_name:
+                    continue
+
+            country_code = meta.get("country")
+            city_name = meta.get("city") or (get_cities_for_country(country_code)[0] if country_code else None)
+            
+            if country_code and country_code in TRAVEL_COUNTRIES:
+                norm_city = normalize_city_name(city_name)
+                total_logged_with_location += 1
+                countries_visited.add(country_code)
+                continents_reached.add(TRAVEL_COUNTRIES[country_code]["continent"])
+                
+                if norm_city:
+                    cities_visited.add((country_code, norm_city))
+                    city_key = (country_code, norm_city)
+                    city_counts[city_key] = city_counts.get(city_key, 0) + 1
                     
-                    country_counts[country_code] = country_counts.get(country_code, 0) + 1
+                    if city_key not in city_users_breakdown:
+                        city_users_breakdown[city_key] = {}
+                    city_users_breakdown[city_key][tx_user] = city_users_breakdown[city_key].get(tx_user, 0) + 1
+                    
+                    if country_code not in country_cities_map:
+                        country_cities_map[country_code] = set()
+                    country_cities_map[country_code].add(norm_city)
+
+                    if is_capital_city(country_code, norm_city):
+                        capital_cities_visited.add((country_code, norm_city))
+                    if is_coffee_capital(norm_city):
+                        coffee_capitals_visited.add(norm_city)
+
+                # Determine if drink is abroad
+                user_home_country = get_user_default_country(tx_user) if is_all_users else def_country
+                if country_code != user_home_country:
+                    drinks_abroad += 1
+                
+                country_counts[country_code] = country_counts.get(country_code, 0) + 1
 
     most_visited_foreign = None
     if country_counts:
-        foreign_counts = {k: v for k, v in country_counts.items() if k != default_country}
+        foreign_counts = {k: v for k, v in country_counts.items() if k != def_country}
         if foreign_counts:
             most_visited_code = max(foreign_counts, key=foreign_counts.get)
             most_visited_foreign = (most_visited_code, foreign_counts[most_visited_code])
@@ -646,6 +690,7 @@ def compute_passport_stats(transactions: list[dict], user: str, default_country:
         "most_visited_city": most_visited_city,
         "country_counts": country_counts,
         "city_counts": city_counts,
+        "city_users_breakdown": city_users_breakdown,
         "country_cities_map": country_cities_map,
         "capital_cities_visited": capital_cities_visited,
         "coffee_capitals_visited": coffee_capitals_visited,

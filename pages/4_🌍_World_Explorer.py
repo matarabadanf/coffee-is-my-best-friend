@@ -4,6 +4,7 @@ from feature_flags import is_unlocked, is_dev_mode, get_countdown_text
 from world_data import (
     TRAVEL_COUNTRIES, 
     DEFAULT_COUNTRY, 
+    USER_MAP_COLORS,
     get_user_default_country,
     get_user_default_city,
     get_city_coordinates,
@@ -61,78 +62,200 @@ render_app_header(
     custom_title=user_title
 )
 
-default_country = prefs.get(selected_user, {}).get("default_country", get_user_default_country(selected_user))
-default_city = prefs.get(selected_user, {}).get("default_city", get_user_default_city(selected_user))
-passport = compute_passport_stats(transactions or [], selected_user, default_country, default_city)
-home_info = TRAVEL_COUNTRIES.get(default_country, TRAVEL_COUNTRIES.get(DEFAULT_COUNTRY))
+st.title("🌍 World Explorer — Global Beverage Footprint")
+st.caption("Explore international travel and coffee & tea adventures across the team.")
 
-st.title(f"🌍 World Explorer — {selected_user}'s Travel Passport")
-st.caption(f"Track the global footprint of your coffee & tea adventures. Home Base: {get_flag_img_html(default_country, 20, 14)} **{default_city}, {home_info['name']}**", unsafe_allow_html=True)
+# --- Filter Toolbar (Explorer & Beverage Type) ---
+filter_col1, filter_col2 = st.columns(2)
+with filter_col1:
+    explorer_options = ["👥 All Crew (Combined)", "Cris", "Bea", "Fer"]
+    selected_explorer_option = st.selectbox(
+        "👤 Explorer View:",
+        explorer_options,
+        index=0,
+        key="world_explorer_user_filter",
+        help="Select 'All Crew' to view combined team logs, or pick an explorer for individual passport stats."
+    )
+with filter_col2:
+    beverage_options = ["☕ & 🍵 All Beverages", "☕ Coffee Only", "🍵 Tea Only"]
+    selected_beverage_option = st.selectbox(
+        "☕ Beverage Filter:",
+        beverage_options,
+        index=0,
+        key="world_explorer_beverage_filter",
+        help="Filter the map and passport statistics by beverage category."
+    )
+
+active_user_filter = None if "All Crew" in selected_explorer_option else selected_explorer_option
+drink_type_filter = "all"
+if "Coffee Only" in selected_beverage_option:
+    drink_type_filter = "coffee"
+elif "Tea Only" in selected_beverage_option:
+    drink_type_filter = "tea"
+
+# Compute passport statistics with active filters
+user_def_country = prefs.get(active_user_filter, {}).get("default_country", get_user_default_country(active_user_filter)) if active_user_filter else DEFAULT_COUNTRY
+user_def_city = prefs.get(active_user_filter, {}).get("default_city", get_user_default_city(active_user_filter)) if active_user_filter else "Madrid"
+
+passport = compute_passport_stats(
+    transactions or [], 
+    user=active_user_filter, 
+    default_country=user_def_country, 
+    default_city=user_def_city,
+    drink_type=drink_type_filter
+)
+
+# Subtitle banner
+if active_user_filter:
+    home_info = TRAVEL_COUNTRIES.get(user_def_country, TRAVEL_COUNTRIES.get(DEFAULT_COUNTRY))
+    st.info(f"Viewing **{active_user_filter}**'s Passport ({selected_beverage_option}) &bull; Home Base: {get_flag_img_html(user_def_country, 20, 14)} **{user_def_city}, {home_info['name']}**")
+else:
+    st.info(f"Viewing **All Crew Combined** ({selected_beverage_option}) &bull; Explorers: **Cris** 🇨🇿, **Bea** 🇳🇱, **Fer** 🇫🇷")
+
 st.divider()
 
-# --- 1. Interactive Folium World Map with City Pins ---
-st.subheader("🗺️ Global Travel Footprint")
+# --- 1. Interactive Folium World Map with User Colors ---
+st.subheader("🗺️ Interactive Travel Map")
+
+# Map Legend
+st.markdown("""
+<div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
+    <span style="font-weight: 600; font-size: 13px;">Explorer Pin Colors:</span>
+    <span style="background-color: #0284C7; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">🟦 Cris (Sky Blue)</span>
+    <span style="background-color: #F43F5E; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">🟥 Bea (Coral)</span>
+    <span style="background-color: #663399; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">🟪 Fer (Rebecca Purple)</span>
+</div>
+""", unsafe_allow_html=True)
 
 try:
     import folium
     from streamlit_folium import st_folium
 
-    # Base coordinates centered around home city
-    home_lat, home_lon = get_city_coordinates(default_country, default_city)
-
+    # Center map on Europe/Madrid
     m = folium.Map(
-        location=[home_lat, home_lon],
-        zoom_start=2 if len(passport["cities_visited"]) > 1 else 4,
+        location=[48.0, 10.0],
+        zoom_start=3,
         tiles="CartoDB positron",
         prefer_canvas=True
     )
 
-    # Plot all visited cities
-    plotted_locations = set()
-    for (c_code, c_city), count in passport["city_counts"].items():
-        c_lat, c_lon = get_city_coordinates(c_code, c_city)
-        c_info = TRAVEL_COUNTRIES.get(c_code, {"name": c_code, "flag": "🏳️", "continent": "Global"})
-        is_home_city = (c_code == default_country and c_city.lower() == default_city.lower())
+    def create_custom_icon(user_name, count=1, is_home=False, drink_filter="all"):
+        color = USER_MAP_COLORS.get(user_name, "#663399")
+        symbol = "🏠" if is_home else ("🍵" if drink_filter == "tea" else "☕")
+        html = f"""
+        <div style="
+            background-color: {color};
+            color: white;
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.35);
+            cursor: pointer;
+            position: relative;
+        ">
+            {symbol}
+            <span style="
+                position: absolute;
+                top: -6px;
+                right: -6px;
+                background: #0f172a;
+                color: #f8fafc;
+                border-radius: 10px;
+                padding: 1px 5px;
+                font-size: 10px;
+                font-weight: 700;
+                border: 1px solid white;
+                line-height: 1.2;
+            ">{count}</span>
+        </div>
+        """
+        return folium.DivIcon(html=html, icon_size=(32, 32), icon_anchor=(16, 16))
+
+    # Plot city markers
+    if active_user_filter is None:
+        # All Crew Mode: Plot pins for each user who drank in each city
+        for (c_code, c_city), user_breakdown in passport.get("city_users_breakdown", {}).items():
+            base_lat, base_lon = get_city_coordinates(c_code, c_city)
+            c_info = TRAVEL_COUNTRIES.get(c_code, {"name": c_code, "flag": "🏳️", "continent": "Global"})
+            
+            user_list = list(user_breakdown.items())
+            num_users = len(user_list)
+            
+            for u_idx, (u_name, u_cnt) in enumerate(user_list):
+                u_home_country = get_user_default_country(u_name)
+                u_home_city = get_user_default_city(u_name)
+                is_home = (c_code == u_home_country and c_city.lower() == u_home_city.lower())
+                
+                # Small offset if multiple users drank in the same city
+                offset_lat = (u_idx - (num_users - 1) / 2) * 0.02 if num_users > 1 else 0.0
+                offset_lon = (u_idx - (num_users - 1) / 2) * 0.02 if num_users > 1 else 0.0
+                
+                pin_lat = base_lat + offset_lat
+                pin_lon = base_lon + offset_lon
+                
+                u_color = USER_MAP_COLORS.get(u_name, "#663399")
+                popup_html = f"""
+                <div style="font-family: sans-serif; min-width: 180px;">
+                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                        <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:{u_color};"></span>
+                        <b>{u_name}</b>
+                    </div>
+                    <b>{c_city}, {c_info['name']} {c_info['flag']}</b><br/>
+                    <span>{'🏠 Home Base &bull; ' if is_home else '✈️ '}<b>{u_cnt}</b> {drink_type_filter.title() if drink_type_filter != 'all' else 'beverage'} drinks</span><br/>
+                    <small style="color: #64748b;">{c_info['continent']}</small>
+                </div>
+                """
+                
+                folium.Marker(
+                    location=[pin_lat, pin_lon],
+                    popup=folium.Popup(popup_html, max_width=280),
+                    tooltip=f"{u_name} in {c_city}, {c_info['name']} ({u_cnt} drinks)",
+                    icon=create_custom_icon(u_name, count=u_cnt, is_home=is_home, drink_filter=drink_type_filter)
+                ).add_to(m)
+    else:
+        # Single User Mode
+        u_home_country = get_user_default_country(active_user_filter)
+        u_home_city = get_user_default_city(active_user_filter)
         
-        # Slight jitter if multiple unique entries share exact coordinates
-        loc_key = (round(c_lat, 3), round(c_lon, 3))
-        if loc_key in plotted_locations:
-            c_lat += 0.02
-            c_lon += 0.02
-        plotted_locations.add(loc_key)
-
-        if is_home_city:
+        for (c_code, c_city), cnt in passport["city_counts"].items():
+            c_lat, c_lon = get_city_coordinates(c_code, c_city)
+            c_info = TRAVEL_COUNTRIES.get(c_code, {"name": c_code, "flag": "🏳️", "continent": "Global"})
+            is_home = (c_code == u_home_country and c_city.lower() == u_home_city.lower())
+            
+            u_color = USER_MAP_COLORS.get(active_user_filter, "#663399")
+            popup_html = f"""
+            <div style="font-family: sans-serif; min-width: 180px;">
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                    <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:{u_color};"></span>
+                    <b>{active_user_filter}</b>
+                </div>
+                <b>{c_city}, {c_info['name']} {c_info['flag']}</b><br/>
+                <span>{'🏠 Home Base &bull; ' if is_home else '✈️ '}<b>{cnt}</b> {drink_type_filter.title() if drink_type_filter != 'all' else 'beverage'} drinks</span><br/>
+                <small style="color: #64748b;">{c_info['continent']}</small>
+            </div>
+            """
+            
             folium.Marker(
                 location=[c_lat, c_lon],
-                popup=folium.Popup(f"<b>🏠 Home Base: {c_city}, {c_info['name']} {c_info['flag']}</b><br/>{count} drinks logged", max_width=250),
-                tooltip=f"🏠 Home Base: {c_city}, {c_info['name']}",
-                icon=folium.Icon(color="blue", icon="home", prefix="fa")
-            ).add_to(m)
-        else:
-            folium.Marker(
-                location=[c_lat, c_lon],
-                popup=folium.Popup(f"<b>✈️ {c_city}, {c_info['name']} {c_info['flag']}</b><br/>{count} drinks logged<br/><i>{c_info['continent']}</i>", max_width=250),
-                tooltip=f"{c_info['flag']} {c_city}, {c_info['name']} ({count} drinks)",
-                icon=folium.Icon(color="red", icon="coffee", prefix="fa")
+                popup=folium.Popup(popup_html, max_width=280),
+                tooltip=f"{active_user_filter} in {c_city}, {c_info['name']} ({cnt} drinks)",
+                icon=create_custom_icon(active_user_filter, count=cnt, is_home=is_home, drink_filter=drink_type_filter)
             ).add_to(m)
 
-    # If user hasn't logged yet, at least plot their home base
-    if not passport["city_counts"]:
-        folium.Marker(
-            location=[home_lat, home_lon],
-            popup=folium.Popup(f"<b>🏠 Home Base: {default_city}, {home_info['name']} {home_info['flag']}</b><br/>Ready for your first brew!", max_width=250),
-            tooltip=f"🏠 Home Base: {default_city}, {home_info['name']}",
-            icon=folium.Icon(color="blue", icon="home", prefix="fa")
-        ).add_to(m)
-
-    st_folium(m, width="100%", height=430)
+    st_folium(m, width="100%", height=450)
 
 except ImportError:
     st.info("💡 Interactive map requires `folium` and `streamlit-folium`. Country statistics and stamps are fully operational below!")
 
 st.divider()
 
-# --- 2. Passport Statistics Cards ---
+# --- 2. Passport Statistics Cards (Filtered) ---
 st.subheader("🛂 Passport Statistics")
 
 c1, c2, c3, c4 = st.columns(4)
@@ -141,7 +264,7 @@ with c1:
         st.metric(
             "🗺️ Countries Visited", 
             f"{len(passport['countries_visited'])} / {len(TRAVEL_COUNTRIES)}",
-            delta=f"{len([c for c in passport['countries_visited'] if c != default_country])} Abroad"
+            delta=f"{len([c for c in passport['countries_visited'] if c != user_def_country])} Abroad"
         )
 with c2:
     with st.container(border=True):
@@ -198,12 +321,12 @@ st.subheader("📬 Collected Passport Stamps")
 
 city_items = sorted(passport["city_counts"].items(), key=lambda x: x[1], reverse=True)
 if not city_items:
-    st.info("No drinks logged with travel location yet. Log a beverage on the landing page to collect your first stamp!")
+    st.info(f"No {selected_beverage_option.lower()} travel logs found for {selected_explorer_option}. Log a beverage to collect your first stamp!")
 else:
     stamp_cols = st.columns(4)
     for idx, ((c_code, c_city), cnt) in enumerate(city_items):
         info = TRAVEL_COUNTRIES.get(c_code, {"name": c_code, "flag": "🏳️", "continent": "Unknown"})
-        is_home = (c_code == default_country and c_city.lower() == default_city.lower())
+        is_home = (c_code == user_def_country and c_city.lower() == user_def_city.lower()) if active_user_filter else False
         
         with stamp_cols[idx % 4]:
             with st.container(border=True):
