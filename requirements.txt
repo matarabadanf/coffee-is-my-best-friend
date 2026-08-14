@@ -3,3 +3,6 @@ supabase
 randfacts
 pandas
 yfinance
+folium>=0.16.0
+streamlit-folium>=0.20
+Pillow>=10.0.0

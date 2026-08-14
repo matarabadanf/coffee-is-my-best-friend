@@ -1,4 +1,5 @@
 import pandas as pd
+from world_data import TRAVEL_COUNTRIES, DEFAULT_COUNTRY, get_user_default_country, compute_passport_stats
 
 def process_raw_data(data, users):
     if not data:
@@ -199,6 +200,18 @@ ACHIEVEMENT_TIERS = {
             {"level": "Gold", "name": "Inferno Beast", "target": 15},
             {"level": "Diamond", "name": "Combustion Monarch", "target": 35},
         ]
+    },
+    "world_explorer": {
+        "title": "🌍 World Explorer",
+        "icon": "🌍",
+        "desc": "Visit different countries and expand your passport.",
+        "tiers": [
+            {"level": "Bronze",  "name": "🗺️ First Stamp",       "target": 1},
+            {"level": "Silver",  "name": "✈️ Frequent Flyer",     "target": 3},
+            {"level": "Gold",    "name": "🌎 Globe Trotter",      "target": 8},
+            {"level": "Diamond", "name": "🗺️ World Traveler",     "target": 15},
+            {"level": "Master",  "name": "👑 Nomad Supreme",      "target": 25},
+        ]
     }
 }
 
@@ -268,6 +281,24 @@ SECRET_FEATS = [
         "title": "🌈 The Chromatic Sovereign",
         "desc": "Unlocked all 8 handcrafted aesthetic palettes in the Theme Boutique to attain complete stylistic supremacy.",
         "hint": "Don every cloak, gown, and armor tailored by the masters of bean and leaf..."
+    },
+    {
+        "id": "continent_hopper",
+        "title": "🌏 Continent Hopper",
+        "desc": "Log drinks in 3+ different continents.",
+        "hint": "One cup per landmass. The equator is just a suggestion."
+    },
+    {
+        "id": "jet_lagged",
+        "title": "✈️ Jet Lagged",
+        "desc": "Log drinks in 2 different countries within 24 hours.",
+        "hint": "Two flags in 24 hours. Where did you wake up?"
+    },
+    {
+        "id": "homebody",
+        "title": "🏠 The Homebody",
+        "desc": "Log 100 consecutive drinks in your default country.",
+        "hint": "100 cups and never left the zip code."
     }
 ]
 
@@ -648,6 +679,12 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None):
             
         u_streak = trophies["streaks"].get(user, 0)
 
+        # Drop 1 Travel Stats & Passport
+        prefs_for_user = get_user_preferences(transactions, [user]).get(user, {})
+        u_def_country = prefs_for_user.get("default_country", get_user_default_country(user))
+        passport = compute_passport_stats(transactions or [], user, u_def_country)
+        u_unique_foreign_countries = len([c for c in passport["countries_visited"] if c != u_def_country])
+
         user_counts = {
             "total": u_total,
             "coffee": u_coffee,
@@ -659,7 +696,8 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None):
             "night": u_night,
             "surge": u_surge,
             "weekend": u_weekend,
-            "combustion": u_on_fire_days
+            "combustion": u_on_fire_days,
+            "world_explorer": u_unique_foreign_countries
         }
 
         # Build Tier Progression
@@ -777,6 +815,37 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None):
         unlocked_set = set(get_unlocked_themes(transactions, user)) if transactions else set(BASE_THEMES)
         chromatic_unlocked = bool(len(unlocked_set) >= len(ALL_VALID_THEMES))
 
+        # Drop 1 Secret Feats
+        continent_hopper_unlocked = len(passport["continents_reached"]) >= 3
+        
+        jet_lagged_unlocked = False
+        homebody_unlocked = False
+        max_consecutive_default_country = 0
+        current_consecutive_default = 0
+        
+        if transactions:
+            user_txs = [tx for tx in transactions if tx.get("user_name") == user and tx.get("transaction_type") == "drink_log"]
+            user_txs.sort(key=lambda x: pd.to_datetime(x.get("created_at", "1970-01-01")))
+            
+            for i in range(len(user_txs)):
+                tx = user_txs[i]
+                c_code = tx.get("metadata", {}).get("country", u_def_country) if isinstance(tx.get("metadata"), dict) else u_def_country
+                if c_code == u_def_country:
+                    current_consecutive_default += 1
+                    max_consecutive_default_country = max(max_consecutive_default_country, current_consecutive_default)
+                else:
+                    current_consecutive_default = 0
+                    
+                if i > 0:
+                    prev_tx = user_txs[i-1]
+                    prev_code = prev_tx.get("metadata", {}).get("country", u_def_country) if isinstance(prev_tx.get("metadata"), dict) else u_def_country
+                    if c_code != prev_code:
+                        time_diff = pd.to_datetime(tx.get("created_at")) - pd.to_datetime(prev_tx.get("created_at"))
+                        if time_diff.total_seconds() <= 86400:
+                            jet_lagged_unlocked = True
+                            
+            homebody_unlocked = max_consecutive_default_country >= 100
+
         user_secrets["phantom"] = phantom_unlocked
         user_secrets["clockwork"] = clockwork_unlocked
         user_secrets["power_nap"] = power_nap_unlocked
@@ -788,6 +857,9 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None):
         user_secrets["alchemist"] = alchemist_unlocked
         user_secrets["thermal_sandwich"] = sandwich_unlocked
         user_secrets["chromatic_sovereign"] = chromatic_unlocked
+        user_secrets["continent_hopper"] = continent_hopper_unlocked
+        user_secrets["jet_lagged"] = jet_lagged_unlocked
+        user_secrets["homebody"] = homebody_unlocked
 
         trophies["secret_feats"][user] = user_secrets
 
@@ -979,7 +1051,7 @@ def get_unlocked_themes(transactions, user):
     return [t for t in ALL_VALID_THEMES if t in unlocked]
 
 def get_user_preferences(transactions, users):
-    prefs = {u: {"theme": "Latte (Light)", "emoji": "☕", "title": None, "ui_style": "Modern Flat"} for u in users}
+    prefs = {u: {"theme": "Latte (Light)", "emoji": "☕", "title": None, "ui_style": "Modern Flat", "default_country": get_user_default_country(u)} for u in users}
     
     if not transactions:
         return prefs
@@ -1011,5 +1083,7 @@ def get_user_preferences(transactions, users):
                 if style_val not in ["Modern Flat", "Glassmorphism", "Neumorphism"]:
                     style_val = "Modern Flat"
                 prefs[u]["ui_style"] = style_val
+            if "default_country" in meta:
+                prefs[u]["default_country"] = meta["default_country"]
                 
     return prefs

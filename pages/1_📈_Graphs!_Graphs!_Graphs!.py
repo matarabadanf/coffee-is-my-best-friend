@@ -15,6 +15,7 @@ from data_processing import (
     resolve_user_title
 )
 from utils import enforce_user_identity
+from world_data import TRAVEL_COUNTRIES, get_option_from_code
 from components.ui import inject_custom_css, render_app_header
 from components.charts import (
     render_pie_chart, 
@@ -41,7 +42,7 @@ user_theme = prefs.get(selected_user, {}).get("theme", "Latte (Light)")
 user_style = prefs.get(selected_user, {}).get("ui_style", "Modern Flat")
 inject_custom_css(user_theme, user_style)
 
-trophies = get_gamification_metrics(df_coffee, df_tea, users)
+trophies = get_gamification_metrics(df_coffee, df_tea, users, transactions=transactions)
 coin_balances = get_coin_balances(df, transactions, users)
 user_coins = coin_balances.get(selected_user, 0)
 user_streak = trophies.get("streaks", {}).get(selected_user, 0)
@@ -147,13 +148,14 @@ else:
 
 st.divider()
 
-# --- 4. Interactive 4-Tab Analytical Suite ---
+# --- 4. Interactive 5-Tab Analytical Suite ---
 if not df_filtered.empty:
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "📊 Overview & Cumulative Race",
         "⏰ Rhythm & Peak Hours",
         "🌡️ Temperature & Preference Duel",
-        "🚀 Projections & Milestones"
+        "🚀 Projections & Milestones",
+        "🌍 Travel & Geography"
     ])
     
     chart_users = ["Cris (coffee)", "Cris (tea)", "Bea (coffee)", "Bea (tea)", "Fer (coffee)", "Fer (tea)"]
@@ -275,6 +277,43 @@ if not df_filtered.empty:
                     cols = st.columns(len(projected_values))
                     for i, (usr, val) in enumerate(projected_values.items()):
                         cols[i].metric(usr, f"{int(round(val))} drinks")
+
+    # --- TAB 5: Travel & Geography ---
+    with tab5:
+        st.markdown("#### 🌍 Beverage Consumption by Country & Continent")
+        st.caption("Geographic distribution of coffee and tea logs across the globe.")
+        
+        travel_logs = []
+        if transactions:
+            for tx in transactions:
+                if tx.get("transaction_type") == "drink_log":
+                    meta = tx.get("metadata", {})
+                    c_code = meta.get("country") if isinstance(meta, dict) else None
+                    if c_code and c_code in TRAVEL_COUNTRIES:
+                        u = tx.get("user_name")
+                        info = TRAVEL_COUNTRIES[c_code]
+                        travel_logs.append({
+                            "User": u,
+                            "Country": f"{info['flag']} {info['name']}",
+                            "Continent": info["continent"],
+                            "Drinks": 1
+                        })
+        
+        if not travel_logs:
+            st.info("No travel location logs recorded yet. Once drinks are logged with country stamps, geographic breakdown analytics will appear here!")
+        else:
+            t_df = pd.DataFrame(travel_logs)
+            tg_col1, tg_col2 = st.columns(2)
+            with tg_col1:
+                with st.container(border=True):
+                    st.markdown("##### 🗺️ Drinks by Country")
+                    country_counts = t_df.groupby("Country")["Drinks"].sum().reset_index().sort_values("Drinks", ascending=False)
+                    st.dataframe(country_counts, use_container_width=True, hide_index=True)
+            with tg_col2:
+                with st.container(border=True):
+                    st.markdown("##### 🌎 Drinks by Continent")
+                    continent_counts = t_df.groupby("Continent")["Drinks"].sum().reset_index().sort_values("Drinks", ascending=False)
+                    st.dataframe(continent_counts, use_container_width=True, hide_index=True)
 
     st.divider()
     st.caption("*Estimated cost and caffeine assumptions: Coffee (€2.50, 95mg), Tea (€1.50, 35mg).*")

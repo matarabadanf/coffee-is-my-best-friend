@@ -15,6 +15,8 @@ from data_processing import (
     get_user_preferences
 )
 from utils import enforce_user_identity
+from world_data import get_country_options, get_option_from_code, get_country_code_from_option, get_user_default_country
+from feature_flags import is_unlocked, is_dev_mode
 from components.ui import (
     inject_custom_css, 
     render_app_header, 
@@ -160,25 +162,30 @@ if not df.empty:
     if not user_clicks.empty:
         last_click_time = user_clicks["created_at"].max()
 
-def handle_drink_log(drink_id, drink_name, temp_name):
+def handle_drink_log(drink_id, drink_name, temp_name, country_code):
     if last_click_time and (now - last_click_time).total_seconds() < 60:
         st.warning(f"Wait {int(60 - (now - last_click_time).total_seconds())}s before logging again!")
         return
     try:
         # 1. Insert Click Record (1: Hot Coffee, 3: Iced Coffee, 2: Hot Tea, 4: Iced Tea)
         insert_click(selected_user, 1, drink_id)
-        # 2. Insert Coin Transaction with explicit temperature metadata
+        # 2. Insert Coin Transaction with explicit temperature and country metadata
         insert_transaction(
             selected_user, 
             10, 
             "drink_log", 
-            {"drink": drink_name.lower(), "temperature": temp_name.lower(), "drink_id": drink_id}
+            {
+                "drink": drink_name.lower(), 
+                "temperature": temp_name.lower(), 
+                "drink_id": drink_id,
+                "country": country_code
+            }
         )
         if "tea" in drink_name.lower():
             st.snow()
         else:
             st.balloons()
-        st.success(f"**{temp_name} {drink_name} Logged!** (+10 🪙)")
+        st.success(f"**{temp_name} {drink_name} Logged in {get_option_from_code(country_code)}!** (+10 🪙)")
         time.sleep(1.2)
         st.rerun()
     except Exception as e:
@@ -190,6 +197,20 @@ st.subheader("⚡ Log Your Beverage")
 if "coffee_break" in active_perks.get(selected_user, []):
     st.error("🚫 You are on a mandatory Coffee Break! You cannot log drinks right now.")
 else:
+    # --- COUNTRY SELECTOR WITH FLAGS ---
+    default_country_code = prefs.get(selected_user, {}).get("default_country", get_user_default_country(selected_user))
+    default_option = get_option_from_code(default_country_code)
+    all_options = get_country_options()
+    
+    selected_option = st.selectbox(
+        "📍 Drinking in:",
+        all_options,
+        index=all_options.index(default_option) if default_option in all_options else 0,
+        key="country_drink_selector",
+        help="Select the country where you are physically drinking this cup."
+    )
+    selected_country_code = get_country_code_from_option(selected_option)
+
     b_col1, b_col2 = st.columns(2)
     
     # ☕ COFFEE ZONE
@@ -201,10 +222,10 @@ else:
             c_btn1, c_btn2 = st.columns(2)
             with c_btn1:
                 if st.button("☕ Hot Coffee", key="btn_hot_coffee", use_container_width=True):
-                    handle_drink_log(1, "Coffee", "Hot")
+                    handle_drink_log(1, "Coffee", "Hot", selected_country_code)
             with c_btn2:
                 if st.button("🧊 Iced Coffee", key="btn_iced_coffee", use_container_width=True):
-                    handle_drink_log(3, "Coffee", "Iced")
+                    handle_drink_log(3, "Coffee", "Iced", selected_country_code)
                     
     # 🍵 TEA ZONE
     with b_col2:
@@ -215,10 +236,10 @@ else:
             t_btn1, t_btn2 = st.columns(2)
             with t_btn1:
                 if st.button("🍵 Hot Tea", key="btn_hot_tea", use_container_width=True):
-                    handle_drink_log(2, "Tea", "Hot")
+                    handle_drink_log(2, "Tea", "Hot", selected_country_code)
             with t_btn2:
                 if st.button("🧊 Iced Tea", key="btn_iced_tea", use_container_width=True):
-                    handle_drink_log(4, "Tea", "Iced")
+                    handle_drink_log(4, "Tea", "Iced", selected_country_code)
 
 st.divider()
 
@@ -330,5 +351,6 @@ with nav_col:
             st.page_link("pages/1_📈_Graphs!_Graphs!_Graphs!.py", label="Analytics & Charts", icon="📈")
             st.page_link("pages/2_🏆_Trophy_Room.py", label="Trophies & Badges", icon="🏆")
         with n2:
+            st.page_link("pages/4_🌍_World_Explorer.py", label="World Explorer", icon="🌍")
             st.page_link("pages/3_🎨_Theme_Shop.py", label="Theme Boutique", icon="🎨")
             st.page_link("pages/99_⚙️_Settings.py", label="Settings", icon="⚙️")

@@ -4,6 +4,7 @@ import pandas as pd
 from database import get_data, get_transactions, insert_transaction
 from data_processing import process_raw_data, get_coin_balances, get_gamification_metrics, get_user_titles, resolve_user_title, get_active_perks, get_user_preferences, get_unlocked_themes
 from utils import verify_pin, is_pin_verified, enforce_user_identity
+from world_data import get_country_options, get_option_from_code, get_country_code_from_option, get_user_default_country
 from components.ui import inject_custom_css, render_app_header
 
 st.set_page_config(page_title="Settings", page_icon="⚙️", layout="wide")
@@ -14,7 +15,7 @@ selected_user = enforce_user_identity(users)
 data = get_data()
 transactions = get_transactions()
 df, df_coffee, df_tea, _, _ = process_raw_data(data, users)
-trophies = get_gamification_metrics(df_coffee, df_tea, users)
+trophies = get_gamification_metrics(df_coffee, df_tea, users, transactions=transactions)
 coin_balances = get_coin_balances(df, transactions, users)
 
 prefs = get_user_preferences(transactions, users)
@@ -129,6 +130,29 @@ with st.container(border=True):
     if st.button("Save Profile Settings", use_container_width=True):
         insert_transaction(selected_user, 0, "preference", {"emoji": emoji, "title": selected_title})
         st.success("Profile saved! Refreshing...")
+        st.rerun()
+
+st.header("🌍 Location Settings")
+with st.container(border=True):
+    st.markdown("### 🌍 Home Base Country")
+    st.caption("Your default physical location for drink logs and home passport registry.")
+    
+    default_country_code = prefs.get(selected_user, {}).get("default_country", get_user_default_country(selected_user))
+    default_option = get_option_from_code(default_country_code)
+    all_options = get_country_options()
+    
+    selected_country_option = st.selectbox(
+        "Default Home Country",
+        all_options,
+        index=all_options.index(default_option) if default_option in all_options else 0,
+        key="settings_default_country_select",
+        help="Sets your pre-selected country when logging beverages."
+    )
+    
+    if st.button("💾 Save Home Location", use_container_width=True):
+        new_country_code = get_country_code_from_option(selected_country_option)
+        insert_transaction(selected_user, 0, "preference", {"default_country": new_country_code})
+        st.success(f"Home base location updated to {selected_country_option}! Refreshing...")
         st.rerun()
 
 st.header("🎒 Active Inventory & Perks")
