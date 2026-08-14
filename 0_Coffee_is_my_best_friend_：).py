@@ -4,7 +4,7 @@ from datetime import datetime
 import time
 
 # Import refactored modules
-from database import get_data, insert_click, get_transactions, insert_transaction, get_preferences
+from database import get_data, insert_click, get_transactions, insert_transaction, get_preferences, save_user_preference
 from data_processing import (
     process_raw_data, 
     get_gamification_metrics, 
