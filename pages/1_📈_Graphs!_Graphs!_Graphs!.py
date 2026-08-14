@@ -15,7 +15,7 @@ from data_processing import (
     resolve_user_title
 )
 from utils import enforce_user_identity
-from world_data import TRAVEL_COUNTRIES, get_option_from_code
+from world_data import TRAVEL_COUNTRIES, get_option_from_code, normalize_city_name, get_cities_for_country
 from components.ui import inject_custom_css, render_app_header
 from components.charts import (
     render_pie_chart, 
@@ -280,8 +280,8 @@ if not df_filtered.empty:
 
     # --- TAB 5: Travel & Geography ---
     with tab5:
-        st.markdown("#### 🌍 Beverage Consumption by Country & Continent")
-        st.caption("Geographic distribution of coffee and tea logs across the globe.")
+        st.markdown("#### 🌍 Beverage Consumption by City, Country & Continent")
+        st.caption("Geographic distribution of coffee and tea logs across global metropolises.")
         
         travel_logs = []
         if transactions:
@@ -292,24 +292,31 @@ if not df_filtered.empty:
                     if c_code and c_code in TRAVEL_COUNTRIES:
                         u = tx.get("user_name")
                         info = TRAVEL_COUNTRIES[c_code]
+                        c_city = normalize_city_name(meta.get("city") or get_cities_for_country(c_code)[0])
                         travel_logs.append({
                             "User": u,
+                            "City": f"{c_city} ({info['flag']})",
                             "Country": f"{info['flag']} {info['name']}",
                             "Continent": info["continent"],
                             "Drinks": 1
                         })
         
         if not travel_logs:
-            st.info("No travel location logs recorded yet. Once drinks are logged with country stamps, geographic breakdown analytics will appear here!")
+            st.info("No travel location logs recorded yet. Once drinks are logged with country & city stamps, geographic breakdown analytics will appear here!")
         else:
             t_df = pd.DataFrame(travel_logs)
-            tg_col1, tg_col2 = st.columns(2)
+            tg_col1, tg_col2, tg_col3 = st.columns(3)
             with tg_col1:
+                with st.container(border=True):
+                    st.markdown("##### 🏙️ Drinks by City")
+                    city_counts = t_df.groupby("City")["Drinks"].sum().reset_index().sort_values("Drinks", ascending=False)
+                    st.dataframe(city_counts, use_container_width=True, hide_index=True)
+            with tg_col2:
                 with st.container(border=True):
                     st.markdown("##### 🗺️ Drinks by Country")
                     country_counts = t_df.groupby("Country")["Drinks"].sum().reset_index().sort_values("Drinks", ascending=False)
                     st.dataframe(country_counts, use_container_width=True, hide_index=True)
-            with tg_col2:
+            with tg_col3:
                 with st.container(border=True):
                     st.markdown("##### 🌎 Drinks by Continent")
                     continent_counts = t_df.groupby("Continent")["Drinks"].sum().reset_index().sort_values("Drinks", ascending=False)

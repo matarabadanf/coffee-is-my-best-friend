@@ -10,6 +10,9 @@ from world_data import (
     get_option_from_code, 
     get_country_code_from_option, 
     get_user_default_country,
+    get_user_default_city,
+    get_cities_for_country,
+    normalize_city_name,
     get_flag_img_html
 )
 from components.ui import inject_custom_css, render_app_header
@@ -141,26 +144,57 @@ with st.container(border=True):
 
 st.header("🌍 Location Settings")
 with st.container(border=True):
-    st.markdown("### 🌍 Home Base Country")
+    st.markdown("### 🌍 Home Base Location")
     st.caption("Your default physical location for drink logs and home passport registry.")
     
     default_country_code = prefs.get(selected_user, {}).get("default_country", get_user_default_country(selected_user))
-    st.caption(f"Current Home Base: {get_flag_img_html(default_country_code, 20, 14)} **{TRAVEL_COUNTRIES.get(default_country_code, {}).get('name', default_country_code)}**", unsafe_allow_html=True)
-    default_option = get_option_from_code(default_country_code)
-    all_options = get_country_options()
+    default_city = prefs.get(selected_user, {}).get("default_city", get_user_default_city(selected_user))
     
-    selected_country_option = st.selectbox(
-        "Default Home Country",
-        all_options,
-        index=all_options.index(default_option) if default_option in all_options else 0,
-        key="settings_default_country_select",
-        help="Sets your pre-selected country when logging beverages."
-    )
+    st.caption(f"Current Home Base: {get_flag_img_html(default_country_code, 20, 14)} **{default_city}, {TRAVEL_COUNTRIES.get(default_country_code, {}).get('name', default_country_code)}**", unsafe_allow_html=True)
+    
+    set_col1, set_col2 = st.columns(2)
+    with set_col1:
+        default_option = get_option_from_code(default_country_code)
+        all_options = get_country_options()
+        
+        selected_country_option = st.selectbox(
+            "Default Home Country",
+            all_options,
+            index=all_options.index(default_option) if default_option in all_options else 0,
+            key="settings_default_country_select",
+            help="Sets your pre-selected country when logging beverages."
+        )
+        new_country_code = get_country_code_from_option(selected_country_option)
+        
+    with set_col2:
+        available_cities = list(get_cities_for_country(new_country_code))
+        if default_city and default_city not in available_cities and new_country_code == default_country_code:
+            available_cities.insert(0, default_city)
+        available_cities.append("✍️ Custom City...")
+        
+        city_idx = available_cities.index(default_city) if default_city in available_cities else 0
+        selected_city_choice = st.selectbox(
+            "Default Home City",
+            available_cities,
+            index=city_idx,
+            key=f"settings_default_city_select_{new_country_code}",
+            help="Sets your pre-selected city when logging beverages."
+        )
+        
+        if selected_city_choice == "✍️ Custom City...":
+            custom_city = st.text_input("Enter Custom City:", value=default_city if default_city not in available_cities else "", placeholder="e.g. Oxford, Plzen...")
+            new_city_name = custom_city.strip() if custom_city.strip() else available_cities[0]
+        else:
+            new_city_name = selected_city_choice
+            
+    new_city_name = normalize_city_name(new_city_name)
     
     if st.button("💾 Save Home Location", use_container_width=True):
-        new_country_code = get_country_code_from_option(selected_country_option)
-        insert_transaction(selected_user, 0, "preference", {"default_country": new_country_code})
-        st.success(f"Home base location updated to {selected_country_option}! Refreshing...")
+        insert_transaction(selected_user, 0, "preference", {
+            "default_country": new_country_code,
+            "default_city": new_city_name
+        })
+        st.success(f"Home base location updated to {new_city_name}, {selected_country_option}! Refreshing...")
         st.rerun()
 
 st.header("🎒 Active Inventory & Perks")

@@ -5,6 +5,8 @@ from world_data import (
     TRAVEL_COUNTRIES, 
     DEFAULT_COUNTRY, 
     get_user_default_country,
+    get_user_default_city,
+    get_city_coordinates,
     get_option_from_code,
     get_flag_img_html,
     compute_passport_stats, 
@@ -60,53 +62,70 @@ render_app_header(
 )
 
 default_country = prefs.get(selected_user, {}).get("default_country", get_user_default_country(selected_user))
-passport = compute_passport_stats(transactions or [], selected_user, default_country)
+default_city = prefs.get(selected_user, {}).get("default_city", get_user_default_city(selected_user))
+passport = compute_passport_stats(transactions or [], selected_user, default_country, default_city)
 home_info = TRAVEL_COUNTRIES.get(default_country, TRAVEL_COUNTRIES.get(DEFAULT_COUNTRY))
 
 st.title(f"🌍 World Explorer — {selected_user}'s Travel Passport")
-st.caption(f"Track the global footprint of your coffee & tea adventures. Home Base: **{home_info['flag']} {home_info['name']}**")
+st.caption(f"Track the global footprint of your coffee & tea adventures. Home Base: {get_flag_img_html(default_country, 20, 14)} **{default_city}, {home_info['name']}**", unsafe_allow_html=True)
 st.divider()
 
-# --- 1. Interactive Folium World Map ---
+# --- 1. Interactive Folium World Map with City Pins ---
 st.subheader("🗺️ Global Travel Footprint")
 
 try:
     import folium
     from streamlit_folium import st_folium
 
-    # Base map configuration
-    home_lat = home_info.get("lat", 40.4168) if home_info else 40.4168
-    home_lon = home_info.get("lon", -3.7038) if home_info else -3.7038
+    # Base coordinates centered around home city
+    home_lat, home_lon = get_city_coordinates(default_country, default_city)
 
     m = folium.Map(
         location=[home_lat, home_lon],
-        zoom_start=2 if len(passport["countries_visited"]) > 1 else 3,
+        zoom_start=2 if len(passport["cities_visited"]) > 1 else 4,
         tiles="CartoDB positron",
         prefer_canvas=True
     )
 
-    # Plot Home Base Marker
-    home_count = passport["country_counts"].get(default_country, 0)
-    folium.Marker(
-        location=[home_lat, home_lon],
-        popup=folium.Popup(f"<b>🏠 Home Base: {home_info['flag']} {home_info['name']}</b><br/>{home_count} drinks logged", max_width=250),
-        tooltip=f"🏠 Home Base: {home_info['flag']} {home_info['name']}",
-        icon=folium.Icon(color="blue", icon="home", prefix="fa")
-    ).add_to(m)
+    # Plot all visited cities
+    plotted_locations = set()
+    for (c_code, c_city), count in passport["city_counts"].items():
+        c_lat, c_lon = get_city_coordinates(c_code, c_city)
+        c_info = TRAVEL_COUNTRIES.get(c_code, {"name": c_code, "flag": "🏳️", "continent": "Global"})
+        is_home_city = (c_code == default_country and c_city.lower() == default_city.lower())
+        
+        # Slight jitter if multiple unique entries share exact coordinates
+        loc_key = (round(c_lat, 3), round(c_lon, 3))
+        if loc_key in plotted_locations:
+            c_lat += 0.02
+            c_lon += 0.02
+        plotted_locations.add(loc_key)
 
-    # Plot Foreign Destinations
-    for code in passport["countries_visited"]:
-        if code != default_country and code in TRAVEL_COUNTRIES:
-            c_info = TRAVEL_COUNTRIES[code]
-            count = passport["country_counts"].get(code, 0)
+        if is_home_city:
             folium.Marker(
-                location=[c_info["lat"], c_info["lon"]],
-                popup=folium.Popup(f"<b>✈️ {c_info['flag']} {c_info['name']}</b><br/>{count} drinks logged<br/><i>{c_info['continent']}</i>", max_width=250),
-                tooltip=f"{c_info['flag']} {c_info['name']} ({count} drinks)",
+                location=[c_lat, c_lon],
+                popup=folium.Popup(f"<b>🏠 Home Base: {c_city}, {c_info['name']} {c_info['flag']}</b><br/>{count} drinks logged", max_width=250),
+                tooltip=f"🏠 Home Base: {c_city}, {c_info['name']}",
+                icon=folium.Icon(color="blue", icon="home", prefix="fa")
+            ).add_to(m)
+        else:
+            folium.Marker(
+                location=[c_lat, c_lon],
+                popup=folium.Popup(f"<b>✈️ {c_city}, {c_info['name']} {c_info['flag']}</b><br/>{count} drinks logged<br/><i>{c_info['continent']}</i>", max_width=250),
+                tooltip=f"{c_info['flag']} {c_city}, {c_info['name']} ({count} drinks)",
                 icon=folium.Icon(color="red", icon="coffee", prefix="fa")
             ).add_to(m)
 
-    st_folium(m, width="100%", height=420)
+    # If user hasn't logged yet, at least plot their home base
+    if not passport["city_counts"]:
+        folium.Marker(
+            location=[home_lat, home_lon],
+            popup=folium.Popup(f"<b>🏠 Home Base: {default_city}, {home_info['name']} {home_info['flag']}</b><br/>Ready for your first brew!", max_width=250),
+            tooltip=f"🏠 Home Base: {default_city}, {home_info['name']}",
+            icon=folium.Icon(color="blue", icon="home", prefix="fa")
+        ).add_to(m)
+
+    st_folium(m, width="100%", height=430)
 
 except ImportError:
     st.info("💡 Interactive map requires `folium` and `streamlit-folium`. Country statistics and stamps are fully operational below!")
@@ -116,7 +135,7 @@ st.divider()
 # --- 2. Passport Statistics Cards ---
 st.subheader("🛂 Passport Statistics")
 
-c1, c2, c3 = st.columns(3)
+c1, c2, c3, c4 = st.columns(4)
 with c1:
     with st.container(border=True):
         st.metric(
@@ -127,11 +146,18 @@ with c1:
 with c2:
     with st.container(border=True):
         st.metric(
+            "🏙️ Cities Explored", 
+            f"{len(passport['cities_visited'])} Cities",
+            delta="Urban Footprint"
+        )
+with c3:
+    with st.container(border=True):
+        st.metric(
             "🌎 Continents Reached", 
             f"{len(passport['continents_reached'])} / 6",
             delta="Global Span"
         )
-with c3:
+with c4:
     with st.container(border=True):
         st.metric(
             "✈️ Drinks Logged Abroad", 
@@ -139,57 +165,67 @@ with c3:
             delta="Outside Home Base"
         )
 
-c4, c5 = st.columns(2)
-with c4:
+c5, c6 = st.columns(2)
+with c5:
     with st.container(border=True):
         mvf = passport["most_visited_foreign"]
+        mvc = passport["most_visited_city"]
+        
+        top_dest_text = []
+        if mvc:
+            top_dest_text.append(f"🏙️ **Top City:** {mvc[0][1]} ({mvc[1]} drinks)")
         if mvf:
-            c_name = get_option_from_code(mvf[0])
-            st.metric("🏆 Top Foreign Destination", f"{c_name}", f"{mvf[1]} drinks logged")
+            top_dest_text.append(f"✈️ **Top Foreign Country:** {get_option_from_code(mvf[0])} ({mvf[1]} drinks)")
+            
+        if top_dest_text:
+            st.markdown("#### 🏆 Top Destinations")
+            for t in top_dest_text:
+                st.write(t)
         else:
-            st.metric("🏆 Top Foreign Destination", "No Foreign Travel Yet", "0 drinks abroad")
-with c5:
+            st.metric("🏆 Top Destination", "Home Turf", "Log foreign drinks to expand!")
+with c6:
     with st.container(border=True):
         st.metric(
             "📊 World Diversity Score", 
             f"{passport['diversity_score']:.2f}%", 
-            delta=f"{len(passport['countries_visited'])} unique flags collected"
+            delta=f"{len(passport['countries_visited'])} countries &bull; {len(passport['cities_visited'])} cities"
         )
 
 st.divider()
 
-# --- 3. Passport Stamps Collection Gallery ---
+# --- 3. Passport Stamps Collection Gallery (City & Country) ---
 st.subheader("📬 Collected Passport Stamps")
 
-visited_codes = sorted(list(passport["countries_visited"]))
-if not visited_codes:
+city_items = sorted(passport["city_counts"].items(), key=lambda x: x[1], reverse=True)
+if not city_items:
     st.info("No drinks logged with travel location yet. Log a beverage on the landing page to collect your first stamp!")
 else:
     stamp_cols = st.columns(4)
-    for idx, code in enumerate(visited_codes):
-        info = TRAVEL_COUNTRIES.get(code, {"name": code, "flag": "🏳️", "continent": "Unknown"})
-        cnt = passport["country_counts"].get(code, 0)
-        is_home = (code == default_country)
+    for idx, ((c_code, c_city), cnt) in enumerate(city_items):
+        info = TRAVEL_COUNTRIES.get(c_code, {"name": c_code, "flag": "🏳️", "continent": "Unknown"})
+        is_home = (c_code == default_country and c_city.lower() == default_city.lower())
         
         with stamp_cols[idx % 4]:
             with st.container(border=True):
-                st.markdown(f"### {get_flag_img_html(code, 26, 20)} {info['name']}", unsafe_allow_html=True)
+                st.markdown(f"### {get_flag_img_html(c_code, 26, 20)} {c_city}", unsafe_allow_html=True)
+                st.markdown(f"**{info['name']}** &bull; *{info['continent']}*")
                 if is_home:
                     st.caption(f"🏠 **Home Base** &bull; `{cnt}` drinks")
                 else:
-                    st.caption(f"✈️ **{info['continent']}** &bull; `{cnt}` drinks")
+                    st.caption(f"✈️ **Abroad** &bull; `{cnt}` drinks")
 
 st.divider()
 
 # --- 4. Travel Leaderboard ---
 st.subheader("🏆 Crew Travel Leaderboard")
-st.caption("Compare international reach and passport diversity across the team.")
+st.caption("Compare international reach, urban coverage, and passport diversity across the team.")
 
 leaderboard = get_travel_leaderboard(transactions or [], users)
 lb_df = pd.DataFrame(leaderboard)
 lb_df.index = lb_df.index + 1
 lb_df = lb_df.rename(columns={
     "user": "Explorer",
+    "cities": "🏙️ Cities",
     "countries": "🗺️ Countries",
     "continents": "🌎 Continents",
     "drinks_abroad": "✈️ Drinks Abroad",

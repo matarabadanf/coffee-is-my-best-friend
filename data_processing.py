@@ -1,5 +1,12 @@
 import pandas as pd
-from world_data import TRAVEL_COUNTRIES, DEFAULT_COUNTRY, get_user_default_country, compute_passport_stats
+from world_data import (
+    TRAVEL_COUNTRIES, 
+    DEFAULT_COUNTRY, 
+    get_user_default_country, 
+    get_user_default_city,
+    compute_passport_stats,
+    is_coffee_capital
+)
 
 def process_raw_data(data, users):
     if not data:
@@ -212,6 +219,18 @@ ACHIEVEMENT_TIERS = {
             {"level": "Diamond", "name": "🗺️ World Traveler",     "target": 15},
             {"level": "Master",  "name": "👑 Nomad Supreme",      "target": 25},
         ]
+    },
+    "metropolis_explorer": {
+        "title": "🏙️ Metropolis Explorer",
+        "icon": "🏙️",
+        "desc": "Visit different cities across your coffee journeys.",
+        "tiers": [
+            {"level": "Bronze",  "name": "🚶 Urban Roamer",       "target": 2},
+            {"level": "Silver",  "name": "🚲 City Hopper",        "target": 5},
+            {"level": "Gold",    "name": "🚇 Metropolitan",       "target": 10},
+            {"level": "Diamond", "name": "✈️ Cosmopolitan",       "target": 20},
+            {"level": "Master",  "name": "👑 Global Citizen",      "target": 35},
+        ]
     }
 }
 
@@ -299,6 +318,24 @@ SECRET_FEATS = [
         "title": "🏠 The Homebody",
         "desc": "Log 100 consecutive drinks in your default country.",
         "hint": "100 cups and never left the zip code."
+    },
+    {
+        "id": "capital_tour",
+        "title": "🏛️ Capital Tour",
+        "desc": "Log drinks in 3+ different national capital cities.",
+        "hint": "Three seats of sovereign power. Three sacred brews."
+    },
+    {
+        "id": "twin_cities",
+        "title": "🌉 Twin Cities",
+        "desc": "Log drinks in 2+ different cities within the same country.",
+        "hint": "Two metropolises under one flag."
+    },
+    {
+        "id": "coffee_capital",
+        "title": "☕ Coffee Capital Pilgrim",
+        "desc": "Log 3+ drinks across world-renowned coffee metropolises.",
+        "hint": "Drink where espresso legends were forged: Vienna, Rome, Seattle, Kyoto, Istanbul..."
     }
 ]
 
@@ -682,8 +719,10 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None):
         # Drop 1 Travel Stats & Passport
         prefs_for_user = get_user_preferences(transactions, [user]).get(user, {})
         u_def_country = prefs_for_user.get("default_country", get_user_default_country(user))
-        passport = compute_passport_stats(transactions or [], user, u_def_country)
+        u_def_city = prefs_for_user.get("default_city", get_user_default_city(user))
+        passport = compute_passport_stats(transactions or [], user, u_def_country, u_def_city)
         u_unique_foreign_countries = len([c for c in passport["countries_visited"] if c != u_def_country])
+        u_unique_cities = len(passport["cities_visited"])
 
         user_counts = {
             "total": u_total,
@@ -697,7 +736,8 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None):
             "surge": u_surge,
             "weekend": u_weekend,
             "combustion": u_on_fire_days,
-            "world_explorer": u_unique_foreign_countries
+            "world_explorer": u_unique_foreign_countries,
+            "metropolis_explorer": u_unique_cities
         }
 
         # Build Tier Progression
@@ -860,6 +900,13 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None):
         user_secrets["continent_hopper"] = continent_hopper_unlocked
         user_secrets["jet_lagged"] = jet_lagged_unlocked
         user_secrets["homebody"] = homebody_unlocked
+        
+        # New City Secret Feats
+        user_secrets["capital_tour"] = len(passport.get("capital_cities_visited", set())) >= 3
+        user_secrets["twin_cities"] = any(len(cities) >= 2 for cities in passport.get("country_cities_map", {}).values())
+        
+        coffee_caps_count = sum(passport.get("city_counts", {}).get(k, 0) for k in passport.get("city_counts", {}) if is_coffee_capital(k[1]))
+        user_secrets["coffee_capital"] = bool(len(passport.get("coffee_capitals_visited", set())) >= 2 or coffee_caps_count >= 3)
 
         trophies["secret_feats"][user] = user_secrets
 
@@ -1051,7 +1098,16 @@ def get_unlocked_themes(transactions, user):
     return [t for t in ALL_VALID_THEMES if t in unlocked]
 
 def get_user_preferences(transactions, users):
-    prefs = {u: {"theme": "Latte (Light)", "emoji": "☕", "title": None, "ui_style": "Modern Flat", "default_country": get_user_default_country(u)} for u in users}
+    prefs = {
+        u: {
+            "theme": "Latte (Light)", 
+            "emoji": "☕", 
+            "title": None, 
+            "ui_style": "Modern Flat", 
+            "default_country": get_user_default_country(u),
+            "default_city": get_user_default_city(u)
+        } for u in users
+    }
     
     if not transactions:
         return prefs
@@ -1085,5 +1141,7 @@ def get_user_preferences(transactions, users):
                 prefs[u]["ui_style"] = style_val
             if "default_country" in meta:
                 prefs[u]["default_country"] = meta["default_country"]
+            if "default_city" in meta:
+                prefs[u]["default_city"] = meta["default_city"]
                 
     return prefs

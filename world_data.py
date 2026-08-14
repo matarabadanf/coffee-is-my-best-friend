@@ -10,18 +10,29 @@ class CountryInfo(TypedDict):
     lat: float
     lon: float
 
-# Default home base countries per user
+# Default home base countries & cities per user
 USER_DEFAULT_COUNTRIES: dict[str, str] = {
     "Bea": "NL",   # Netherlands 🇳🇱
     "Fer": "FR",   # France 🇫🇷
     "Cris": "CZ",  # Czech Republic 🇨🇿
 }
 
+USER_DEFAULT_CITIES: dict[str, str] = {
+    "Bea": "Amsterdam",
+    "Fer": "Paris",
+    "Cris": "Prague",
+}
+
 DEFAULT_COUNTRY = "ES"  # System fallback
+DEFAULT_CITY = "Madrid"
 
 def get_user_default_country(user: str) -> str:
     """Returns the default home base country code for a given user."""
     return USER_DEFAULT_COUNTRIES.get(user, DEFAULT_COUNTRY)
+
+def get_user_default_city(user: str) -> str:
+    """Returns the default home base city for a given user."""
+    return USER_DEFAULT_CITIES.get(user, DEFAULT_CITY)
 
 # Comprehensive ISO 3166-1 alpha-2 country and territory registry with coordinates & flag emojis
 TRAVEL_COUNTRIES: dict[str, CountryInfo] = {
@@ -234,6 +245,170 @@ TRAVEL_COUNTRIES: dict[str, CountryInfo] = {
     "WS": {"name": "Samoa", "flag": "🇼🇸", "continent": "Oceania", "lat": -13.8333, "lon": -171.7667},
 }
 
+# ── Curated Cities Registry & Exact Coordinates ──
+POPULAR_CITIES: dict[str, list[str]] = {
+    "NL": ["Amsterdam", "Rotterdam", "The Hague", "Utrecht", "Eindhoven", "Groningen", "Maastricht"],
+    "FR": ["Paris", "Lyon", "Marseille", "Bordeaux", "Nice", "Toulouse", "Strasbourg", "Lille", "Nantes"],
+    "CZ": ["Prague", "Brno", "Ostrava", "Plzen", "Liberec", "Olomouc", "Ceske Budejovice"],
+    "ES": ["Madrid", "Barcelona", "Valencia", "Seville", "Malaga", "Bilbao", "Granada", "Palma"],
+    "IT": ["Rome", "Milan", "Florence", "Venice", "Naples", "Bologna", "Turin"],
+    "DE": ["Berlin", "Munich", "Hamburg", "Frankfurt", "Cologne", "Stuttgart", "Dresden"],
+    "GB": ["London", "Edinburgh", "Manchester", "Birmingham", "Glasgow", "Bristol", "Oxford", "Cambridge"],
+    "AT": ["Vienna", "Salzburg", "Innsbruck", "Graz"],
+    "CH": ["Zurich", "Geneva", "Bern", "Basel", "Lucerne"],
+    "BE": ["Brussels", "Antwerp", "Ghent", "Bruges"],
+    "PT": ["Lisbon", "Porto", "Faro", "Coimbra"],
+    "GR": ["Athens", "Thessaloniki", "Heraklion"],
+    "PL": ["Warsaw", "Krakow", "Gdansk", "Wroclaw"],
+    "SE": ["Stockholm", "Gothenburg", "Malmo"],
+    "NO": ["Oslo", "Bergen", "Trondheim"],
+    "DK": ["Copenhagen", "Aarhus", "Odense"],
+    "FI": ["Helsinki", "Tampere", "Turku"],
+    "IE": ["Dublin", "Cork", "Galway"],
+    "US": ["New York", "San Francisco", "Seattle", "Los Angeles", "Chicago", "Boston", "Austin", "Miami"],
+    "CA": ["Toronto", "Vancouver", "Montreal", "Ottawa"],
+    "MX": ["Mexico City", "Guadalajara", "Monterrey", "Cancun"],
+    "JP": ["Tokyo", "Kyoto", "Osaka", "Sapporo", "Fukuoka"],
+    "KR": ["Seoul", "Busan", "Incheon"],
+    "CN": ["Beijing", "Shanghai", "Shenzhen", "Guangzhou"],
+    "TW": ["Taipei", "Kaohsiung"],
+    "HK": ["Hong Kong"],
+    "SG": ["Singapore"],
+    "TH": ["Bangkok", "Chiang Mai", "Phuket"],
+    "VN": ["Hanoi", "Ho Chi Minh City", "Da Nang"],
+    "ID": ["Jakarta", "Bali", "Bandung"],
+    "IN": ["New Delhi", "Mumbai", "Bengaluru"],
+    "AU": ["Sydney", "Melbourne", "Brisbane", "Perth"],
+    "NZ": ["Auckland", "Wellington", "Christchurch"],
+    "BR": ["Sao Paulo", "Rio de Janeiro", "Brasilia"],
+    "AR": ["Buenos Aires", "Cordoba", "Mendoza"],
+    "CO": ["Bogota", "Medellin", "Cartagena"],
+    "CL": ["Santiago", "Valparaiso"],
+    "PE": ["Lima", "Cusco"],
+    "ZA": ["Cape Town", "Johannesburg", "Durban"],
+    "EG": ["Cairo", "Alexandria"],
+    "MA": ["Marrakech", "Casablanca", "Rabat"],
+    "TR": ["Istanbul", "Ankara", "Izmir"],
+    "AE": ["Dubai", "Abu Dhabi"],
+}
+
+CITY_COORDINATES: dict[tuple[str, str], tuple[float, float]] = {
+    # Netherlands
+    ("NL", "amsterdam"): (52.3676, 4.9041),
+    ("NL", "rotterdam"): (51.9244, 4.4777),
+    ("NL", "the hague"): (52.0705, 4.3007),
+    ("NL", "utrecht"): (52.0907, 5.1214),
+    ("NL", "eindhoven"): (51.4416, 5.4697),
+    ("NL", "groningen"): (53.2194, 6.5665),
+    ("NL", "maastricht"): (50.8514, 5.6910),
+    # France
+    ("FR", "paris"): (48.8566, 2.3522),
+    ("FR", "lyon"): (45.7640, 4.8357),
+    ("FR", "marseille"): (43.2965, 5.3698),
+    ("FR", "bordeaux"): (44.8378, -0.5792),
+    ("FR", "nice"): (43.7102, 7.2620),
+    ("FR", "toulouse"): (43.6047, 1.4442),
+    ("FR", "strasbourg"): (48.5734, 7.7521),
+    ("FR", "lille"): (50.6292, 3.0573),
+    ("FR", "nantes"): (47.2184, -1.5536),
+    # Czech Republic
+    ("CZ", "prague"): (50.0755, 14.4378),
+    ("CZ", "brno"): (49.1951, 16.6068),
+    ("CZ", "ostrava"): (49.8209, 18.2625),
+    ("CZ", "plzen"): (49.7384, 13.3736),
+    ("CZ", "liberec"): (50.7671, 15.0562),
+    ("CZ", "olomouc"): (49.5938, 17.2509),
+    ("CZ", "ceske budejovice"): (48.9745, 14.4743),
+    # Spain
+    ("ES", "madrid"): (40.4168, -3.7038),
+    ("ES", "barcelona"): (41.3879, 2.1699),
+    ("ES", "valencia"): (39.4699, -0.3763),
+    ("ES", "seville"): (37.3891, -5.9845),
+    ("ES", "malaga"): (36.7213, -4.4214),
+    ("ES", "bilbao"): (43.2630, -2.9350),
+    ("ES", "granada"): (37.1773, -3.5986),
+    ("ES", "palma"): (39.5696, 2.6502),
+    # Italy
+    ("IT", "rome"): (41.9028, 12.4964),
+    ("IT", "milan"): (45.4642, 9.1900),
+    ("IT", "florence"): (43.7696, 11.2558),
+    ("IT", "venice"): (45.4408, 12.3155),
+    ("IT", "naples"): (40.8518, 14.2681),
+    ("IT", "bologna"): (44.4949, 11.3426),
+    ("IT", "turin"): (45.0703, 7.6869),
+    # Germany
+    ("DE", "berlin"): (52.5200, 13.4050),
+    ("DE", "munich"): (48.1351, 11.5820),
+    ("DE", "hamburg"): (53.5511, 9.9937),
+    ("DE", "frankfurt"): (50.1109, 8.6821),
+    ("DE", "cologne"): (50.9375, 6.9603),
+    ("DE", "stuttgart"): (48.7758, 9.1829),
+    ("DE", "dresden"): (51.0504, 13.7373),
+    # UK
+    ("GB", "london"): (51.5074, -0.1278),
+    ("GB", "edinburgh"): (55.9533, -3.1883),
+    ("GB", "manchester"): (53.4808, -2.2426),
+    ("GB", "birmingham"): (52.4862, -1.8904),
+    ("GB", "glasgow"): (55.8642, -4.2518),
+    ("GB", "bristol"): (51.4545, -2.5879),
+    ("GB", "oxford"): (51.7520, -1.2577),
+    ("GB", "cambridge"): (52.2053, 0.1218),
+    # Austria & Switzerland
+    ("AT", "vienna"): (48.2082, 16.3738),
+    ("AT", "salzburg"): (47.8095, 13.0550),
+    ("AT", "innsbruck"): (47.2692, 11.4041),
+    ("AT", "graz"): (47.0707, 15.4395),
+    ("CH", "zurich"): (47.3769, 8.5417),
+    ("CH", "geneva"): (46.2044, 6.1432),
+    ("CH", "bern"): (46.9480, 7.4474),
+    ("CH", "basel"): (47.5596, 7.5886),
+    # Belgium & Portugal
+    ("BE", "brussels"): (50.8503, 4.3517),
+    ("BE", "antwerp"): (51.2194, 4.4025),
+    ("BE", "ghent"): (51.0543, 3.7174),
+    ("BE", "bruges"): (51.2093, 3.2247),
+    ("PT", "lisbon"): (38.7223, -9.1393),
+    ("PT", "porto"): (41.1579, -8.6291),
+    # Other Global Hubs
+    ("US", "new york"): (40.7128, -74.0060),
+    ("US", "san francisco"): (37.7749, -122.4194),
+    ("US", "seattle"): (47.6062, -122.3321),
+    ("US", "los angeles"): (34.0522, -118.2437),
+    ("US", "chicago"): (41.8781, -87.6298),
+    ("CA", "toronto"): (43.6532, -79.3832),
+    ("CA", "vancouver"): (49.2827, -123.1207),
+    ("JP", "tokyo"): (35.6762, 139.6503),
+    ("JP", "kyoto"): (35.0116, 135.7681),
+    ("JP", "osaka"): (34.6937, 135.5023),
+    ("KR", "seoul"): (37.5665, 126.9780),
+    ("CN", "beijing"): (39.9042, 116.4074),
+    ("CN", "shanghai"): (31.2304, 121.4737),
+    ("AU", "sydney"): (-33.8688, 151.2093),
+    ("AU", "melbourne"): (-37.8136, 144.9631),
+    ("BR", "sao paulo"): (-23.5505, -46.6333),
+    ("AR", "buenos aires"): (-34.6037, -58.3816),
+    ("CO", "bogota"): (4.7110, -74.0721),
+    ("TR", "istanbul"): (41.0082, 28.9784),
+    ("AE", "dubai"): (25.2048, 55.2708),
+    ("SG", "singapore"): (1.3521, 103.8198),
+}
+
+CAPITAL_CITIES: set[tuple[str, str]] = {
+    ("NL", "amsterdam"), ("FR", "paris"), ("CZ", "prague"), ("ES", "madrid"),
+    ("IT", "rome"), ("DE", "berlin"), ("GB", "london"), ("AT", "vienna"),
+    ("CH", "bern"), ("BE", "brussels"), ("PT", "lisbon"), ("GR", "athens"),
+    ("PL", "warsaw"), ("SE", "stockholm"), ("NO", "oslo"), ("DK", "copenhagen"),
+    ("FI", "helsinki"), ("IE", "dublin"), ("US", "washington"), ("CA", "ottawa"),
+    ("JP", "tokyo"), ("KR", "seoul"), ("CN", "beijing"), ("AU", "canberra"),
+    ("NZ", "wellington"), ("BR", "brasilia"), ("AR", "buenos aires"), ("CO", "bogota"),
+    ("TR", "ankara"), ("EG", "cairo"), ("MA", "rabat"),
+}
+
+FAMOUS_COFFEE_CITIES: set[str] = {
+    "vienna", "rome", "seattle", "melbourne", "kyoto", "istanbul",
+    "bogota", "addis ababa", "paris", "naples", "san francisco", "amsterdam", "prague"
+}
+
 def get_country_options() -> list[str]:
     """Returns formatted, alphabetically-sorted list for st.selectbox: ['🇦🇫 Afghanistan', '🇦🇱 Albania', ...]"""
     sorted_items = sorted(TRAVEL_COUNTRIES.values(), key=lambda x: x["name"])
@@ -256,25 +431,84 @@ def get_flag_img_html(code: str, width: int = 24, height: int = 18) -> str:
     c = code.lower()
     return f'<img src="https://flagcdn.com/w40/{c}.png" width="{width}" height="{height}" style="vertical-align: -2px; margin-right: 6px; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.18);" alt="{code}"/>'
 
+def normalize_city_name(city: str) -> str:
+    """Cleans and title-cases city string."""
+    if not city:
+        return ""
+    return city.strip().title()
 
-def compute_passport_stats(transactions: list[dict], user: str, default_country: str) -> dict:
-    """Compute travel passport statistics from coin_transactions for a specific user."""
+def get_cities_for_country(country_code: str) -> list[str]:
+    """Returns list of popular cities for a country, defaulting to capital/country name if unlisted."""
+    if country_code in POPULAR_CITIES:
+        return POPULAR_CITIES[country_code]
+    country_info = TRAVEL_COUNTRIES.get(country_code)
+    return [country_info["name"]] if country_info else ["Central"]
+
+def get_city_coordinates(country_code: str, city: str) -> tuple[float, float]:
+    """Returns (lat, lon) for a city in a given country, falling back to country centroid."""
+    c_code = country_code.upper()
+    c_name = normalize_city_name(city).lower()
+    
+    if (c_code, c_name) in CITY_COORDINATES:
+        return CITY_COORDINATES[(c_code, c_name)]
+        
+    country_info = TRAVEL_COUNTRIES.get(c_code)
+    if country_info:
+        return (country_info["lat"], country_info["lon"])
+    return (0.0, 0.0)
+
+def is_capital_city(country_code: str, city: str) -> bool:
+    """Checks if a city is a recognized national capital."""
+    return (country_code.upper(), normalize_city_name(city).lower()) in CAPITAL_CITIES
+
+def is_coffee_capital(city: str) -> bool:
+    """Checks if a city is in the legendary coffee metropolises registry."""
+    return normalize_city_name(city).lower() in FAMOUS_COFFEE_CITIES
+
+def compute_passport_stats(transactions: list[dict], user: str, default_country: str, default_city: str = None) -> dict:
+    """Compute comprehensive country and city travel passport statistics from coin_transactions."""
     countries_visited = set()
     continents_reached = set()
+    cities_visited = set()
     drinks_abroad = 0
-    total_logged_with_country = 0
+    total_logged_with_location = 0
     country_counts: dict[str, int] = {}
+    city_counts: dict[tuple[str, str], int] = {}
+    country_cities_map: dict[str, set[str]] = {}
+    capital_cities_visited = set()
+    coffee_capitals_visited = set()
+
+    def_city = default_city or get_user_default_city(user)
 
     if transactions:
         for tx in transactions:
             if tx.get("user_name") == user and tx.get("transaction_type") == "drink_log":
                 meta = tx.get("metadata", {})
-                country_code = meta.get("country") if isinstance(meta, dict) else None
+                if not isinstance(meta, dict):
+                    continue
+                country_code = meta.get("country")
+                city_name = meta.get("city") or get_cities_for_country(country_code)[0] if country_code else None
+                
                 if country_code and country_code in TRAVEL_COUNTRIES:
-                    total_logged_with_country += 1
+                    norm_city = normalize_city_name(city_name)
+                    total_logged_with_location += 1
                     countries_visited.add(country_code)
                     continents_reached.add(TRAVEL_COUNTRIES[country_code]["continent"])
                     
+                    if norm_city:
+                        cities_visited.add((country_code, norm_city))
+                        city_key = (country_code, norm_city)
+                        city_counts[city_key] = city_counts.get(city_key, 0) + 1
+                        
+                        if country_code not in country_cities_map:
+                            country_cities_map[country_code] = set()
+                        country_cities_map[country_code].add(norm_city)
+
+                        if is_capital_city(country_code, norm_city):
+                            capital_cities_visited.add((country_code, norm_city))
+                        if is_coffee_capital(norm_city):
+                            coffee_capitals_visited.add(norm_city)
+
                     if country_code != default_country:
                         drinks_abroad += 1
                     
@@ -287,35 +521,49 @@ def compute_passport_stats(transactions: list[dict], user: str, default_country:
             most_visited_code = max(foreign_counts, key=foreign_counts.get)
             most_visited_foreign = (most_visited_code, foreign_counts[most_visited_code])
 
+    most_visited_city = None
+    if city_counts:
+        top_city_key = max(city_counts, key=city_counts.get)
+        most_visited_city = (top_city_key, city_counts[top_city_key])
+
     diversity_score = (len(countries_visited) / len(TRAVEL_COUNTRIES)) * 100 if TRAVEL_COUNTRIES else 0.0
 
     return {
         "countries_visited": countries_visited,
         "continents_reached": continents_reached,
+        "cities_visited": cities_visited,
         "drinks_abroad": drinks_abroad,
-        "total_logged_with_country": total_logged_with_country,
+        "total_logged_with_location": total_logged_with_location,
         "most_visited_foreign": most_visited_foreign,
+        "most_visited_city": most_visited_city,
         "country_counts": country_counts,
+        "city_counts": city_counts,
+        "country_cities_map": country_cities_map,
+        "capital_cities_visited": capital_cities_visited,
+        "coffee_capitals_visited": coffee_capitals_visited,
         "diversity_score": diversity_score
     }
 
 def get_travel_leaderboard(transactions: list[dict], users: list[str]) -> list[dict]:
-    """Returns sorted list of travel stats for leaderboard."""
+    """Returns sorted list of travel stats including unique cities for leaderboard."""
     leaderboard = []
     
     from data_processing import get_user_preferences
     prefs = get_user_preferences(transactions, users)
     
     for u in users:
-        u_def = prefs.get(u, {}).get("default_country", get_user_default_country(u))
-        stats = compute_passport_stats(transactions or [], u, u_def)
+        u_def_country = prefs.get(u, {}).get("default_country", get_user_default_country(u))
+        u_def_city = prefs.get(u, {}).get("default_city", get_user_default_city(u))
+        stats = compute_passport_stats(transactions or [], u, u_def_country, u_def_city)
         leaderboard.append({
             "user": u,
+            "cities": len(stats["cities_visited"]),
             "countries": len(stats["countries_visited"]),
             "continents": len(stats["continents_reached"]),
             "drinks_abroad": stats["drinks_abroad"],
             "diversity": stats["diversity_score"]
         })
         
-    leaderboard.sort(key=lambda x: (x["countries"], x["continents"], x["drinks_abroad"]), reverse=True)
+    leaderboard.sort(key=lambda x: (x["cities"], x["countries"], x["continents"], x["drinks_abroad"]), reverse=True)
     return leaderboard
+

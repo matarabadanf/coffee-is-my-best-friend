@@ -21,6 +21,9 @@ from world_data import (
     get_option_from_code, 
     get_country_code_from_option, 
     get_user_default_country,
+    get_user_default_city,
+    get_cities_for_country,
+    normalize_city_name,
     get_flag_img_html
 )
 from feature_flags import is_unlocked, is_dev_mode, is_patch_notes_active, get_current_madrid_time
@@ -77,28 +80,28 @@ now = get_current_madrid_time() if df.empty else get_current_madrid_time()
 
 # --- Drop 1 World Update Patch Notes Banner (Active for 7 days upon release or in Dev Preview) ---
 if is_patch_notes_active("world_update", dev_bypass=is_dev_mode(selected_user)):
-    with st.expander("🌍 **Drop 1 Patch Notes — World Update & Travel Passport is LIVE! (Tap to expand)**", expanded=True):
+    with st.expander("🌍 **Drop 1 Patch Notes — World Update & City Passport is LIVE! (Tap to expand)**", expanded=True):
         pn1, pn2, pn3 = st.columns(3)
         with pn1:
             st.markdown("""
-            #### 📍 **Travel Logging & Home Bases**
-            - ✈️ **Real-time Travel Tracker**: Select where you are physically drinking each cup directly on the beverage bar!
-            - 🏠 **Personalized Home Bases**: Configured per explorer (**Bea**: 🇳🇱 Netherlands, **Fer**: 🇫🇷 France, **Cris**: 🇨🇿 Czech Republic). Change anytime in [⚙️ Settings](pages/99_⚙️_Settings.py)!
-            - 🌐 **Full World Coverage**: 196+ recognized countries and territories with official flag graphics.
+            #### 📍 **City & Country Travel Logging**
+            - ✈️ **Real-time Travel Tracker**: Log drinks with exact **Country & City** directly from the beverage bar!
+            - 🏠 **Personalized Home Bases**: Configured per explorer (**Bea**: 🇳🇱 Amsterdam, **Fer**: 🇫🇷 Paris, **Cris**: 🇨🇿 Prague). Update anytime in [⚙️ Settings](pages/99_⚙️_Settings.py)!
+            - 🌐 **Global City Registry**: 196+ countries with curated popular cities and custom write-in support.
             """)
         with pn2:
             st.markdown("""
-            #### 🗺️ **World Explorer & Passport**
-            - 🧭 **Interactive Travel Footprint**: Open [🌍 World Explorer](pages/4_🌍_World_Explorer.py) to view all pinned destinations with drink totals.
-            - 🛂 **Passport Analytics**: Live tracking of countries visited, continents reached, drinks abroad, top foreign destination, and diversity score.
-            - 📬 **Stamp Gallery**: Collect commemorative stamps for every destination!
+            #### 🗺️ **World Explorer & City Pins**
+            - 🧭 **Interactive Pinned Map**: Open [🌍 World Explorer](pages/4_🌍_World_Explorer.py) to view exact city markers across the globe.
+            - 🛂 **Passport Analytics**: Live tracking of countries visited, cities explored, continents reached, and world diversity score.
+            - 📬 **City Stamp Gallery**: Collect commemorative stamps for every urban destination!
             """)
         with pn3:
             st.markdown("""
-            #### 🏆 **Mastery Tracks & Grimoire Secrets**
-            - 🎖️ **World Explorer Mastery Track**: 5 prestigious tiers in the Trophy Room from 🥉 *First Stamp* to 👑 *Nomad Supreme*.
-            - 🕵️ **3 New Secret Feats**: Discover the hidden lore of 🌏 *Continent Hopper*, ✈️ *Jet Lagged*, and 🏠 *The Homebody*!
-            - 📊 **Travel Analytics**: New dedicated Travel & Geography tab on the [📈 Charts Page](pages/1_📈_Graphs!_Graphs!_Graphs!.py).
+            #### 🏆 **Urban Mastery & Secret Feats**
+            - 🎖️ **Two Mastery Tracks**: *World Explorer* (5 tiers) & *Metropolis Explorer* (5 tiers from *Urban Roamer* to *Global Citizen*).
+            - 🕵️ **6 Secret Travel Feats**: Uncover *Continent Hopper*, *Jet Lagged*, *The Homebody*, *Capital Tour*, *Twin Cities*, and *Coffee Capital Pilgrim*!
+            - 📊 **Travel Analytics**: City, Country & Continent breakdowns on the [📈 Charts Page](pages/1_📈_Graphs!_Graphs!_Graphs!.py).
             """)
 
 # --- Version 2.0 Launch Banner (Active Aug 14 - Aug 21, 2026, suppressed once Drop 1 is active) ---
@@ -197,14 +200,14 @@ if not df.empty:
     if not user_clicks.empty:
         last_click_time = user_clicks["created_at"].max()
 
-def handle_drink_log(drink_id, drink_name, temp_name, country_code):
+def handle_drink_log(drink_id, drink_name, temp_name, country_code, city_name):
     if last_click_time and (now - last_click_time).total_seconds() < 60:
         st.warning(f"Wait {int(60 - (now - last_click_time).total_seconds())}s before logging again!")
         return
     try:
         # 1. Insert Click Record (1: Hot Coffee, 3: Iced Coffee, 2: Hot Tea, 4: Iced Tea)
         insert_click(selected_user, 1, drink_id)
-        # 2. Insert Coin Transaction with explicit temperature and country metadata
+        # 2. Insert Coin Transaction with explicit temperature, country, and city metadata
         insert_transaction(
             selected_user, 
             10, 
@@ -213,14 +216,15 @@ def handle_drink_log(drink_id, drink_name, temp_name, country_code):
                 "drink": drink_name.lower(), 
                 "temperature": temp_name.lower(), 
                 "drink_id": drink_id,
-                "country": country_code
+                "country": country_code,
+                "city": city_name
             }
         )
         if "tea" in drink_name.lower():
             st.snow()
         else:
             st.balloons()
-        st.success(f"**{temp_name} {drink_name} Logged in {get_option_from_code(country_code)}!** (+10 🪙)")
+        st.success(f"**{temp_name} {drink_name} Logged in {city_name}, {get_option_from_code(country_code)}!** (+10 🪙)")
         time.sleep(1.2)
         st.rerun()
     except Exception as e:
@@ -232,20 +236,51 @@ st.subheader("⚡ Log Your Beverage")
 if "coffee_break" in active_perks.get(selected_user, []):
     st.error("🚫 You are on a mandatory Coffee Break! You cannot log drinks right now.")
 else:
-    # --- COUNTRY SELECTOR WITH FLAGS ---
-    default_country_code = prefs.get(selected_user, {}).get("default_country", get_user_default_country(selected_user))
-    default_option = get_option_from_code(default_country_code)
-    all_options = get_country_options()
-    
-    selected_option = st.selectbox(
-        "📍 Drinking in:",
-        all_options,
-        index=all_options.index(default_option) if default_option in all_options else 0,
-        key="country_drink_selector",
-        help="Select the country where you are physically drinking this cup."
-    )
-    selected_country_code = get_country_code_from_option(selected_option)
-    st.caption(f"📍 Logging from: {get_flag_img_html(selected_country_code, 20, 14)} **{TRAVEL_COUNTRIES[selected_country_code]['name']}**", unsafe_allow_html=True)
+    # --- LOCATION SELECTOR (Country & City) ---
+    loc_c1, loc_c2 = st.columns([1.1, 1])
+    with loc_c1:
+        default_country_code = prefs.get(selected_user, {}).get("default_country", get_user_default_country(selected_user))
+        default_option = get_option_from_code(default_country_code)
+        all_options = get_country_options()
+        
+        selected_option = st.selectbox(
+            "📍 Country:",
+            all_options,
+            index=all_options.index(default_option) if default_option in all_options else 0,
+            key="country_drink_selector",
+            help="Select the country where you are physically drinking this cup."
+        )
+        selected_country_code = get_country_code_from_option(selected_option)
+
+    with loc_c2:
+        country_cities = get_cities_for_country(selected_country_code)
+        user_default_city = prefs.get(selected_user, {}).get("default_city", get_user_default_city(selected_user))
+        
+        city_options = list(country_cities)
+        if user_default_city and user_default_city not in city_options and selected_country_code == default_country_code:
+            city_options.insert(0, user_default_city)
+        city_options.append("✍️ Custom / Other City...")
+        
+        city_idx = 0
+        if selected_country_code == default_country_code and user_default_city in city_options:
+            city_idx = city_options.index(user_default_city)
+            
+        selected_city_choice = st.selectbox(
+            "🏙️ City:",
+            city_options,
+            index=city_idx,
+            key=f"city_drink_selector_{selected_country_code}",
+            help="Select or enter the city where you are physically drinking this cup."
+        )
+        
+        if selected_city_choice == "✍️ Custom / Other City...":
+            custom_city_input = st.text_input("Enter City Name:", value="", placeholder="e.g. Kyoto, Oxford, Plzen...", key="custom_city_input")
+            selected_city = custom_city_input if custom_city_input.strip() else country_cities[0]
+        else:
+            selected_city = selected_city_choice
+
+    selected_city = normalize_city_name(selected_city)
+    st.caption(f"📍 Logging from: {get_flag_img_html(selected_country_code, 20, 14)} **{selected_city}, {TRAVEL_COUNTRIES[selected_country_code]['name']}**", unsafe_allow_html=True)
 
     b_col1, b_col2 = st.columns(2)
     
@@ -258,10 +293,10 @@ else:
             c_btn1, c_btn2 = st.columns(2)
             with c_btn1:
                 if st.button("☕ Hot Coffee", key="btn_hot_coffee", use_container_width=True):
-                    handle_drink_log(1, "Coffee", "Hot", selected_country_code)
+                    handle_drink_log(1, "Coffee", "Hot", selected_country_code, selected_city)
             with c_btn2:
                 if st.button("🧊 Iced Coffee", key="btn_iced_coffee", use_container_width=True):
-                    handle_drink_log(3, "Coffee", "Iced", selected_country_code)
+                    handle_drink_log(3, "Coffee", "Iced", selected_country_code, selected_city)
                     
     # 🍵 TEA ZONE
     with b_col2:
@@ -272,10 +307,10 @@ else:
             t_btn1, t_btn2 = st.columns(2)
             with t_btn1:
                 if st.button("🍵 Hot Tea", key="btn_hot_tea", use_container_width=True):
-                    handle_drink_log(2, "Tea", "Hot", selected_country_code)
+                    handle_drink_log(2, "Tea", "Hot", selected_country_code, selected_city)
             with t_btn2:
                 if st.button("🧊 Iced Tea", key="btn_iced_tea", use_container_width=True):
-                    handle_drink_log(4, "Tea", "Iced", selected_country_code)
+                    handle_drink_log(4, "Tea", "Iced", selected_country_code, selected_city)
 
 st.divider()
 
