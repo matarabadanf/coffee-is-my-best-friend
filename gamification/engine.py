@@ -526,7 +526,7 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None, achiev
         
         coffee_caps_count = sum(passport.get("city_counts", {}).get(k, 0) for k in passport.get("city_counts", {}) if is_coffee_capital(k[1]))
         user_secrets["coffee_capital"] = bool(len(passport.get("coffee_capitals_visited", set())) >= 2 or coffee_caps_count >= 3)
-        user_secrets["ui_2_0_pioneer"] = bool(not user_logs.empty or len(unlocked_set) > 1 or passport.get("countries_count", 0) > 0)
+        user_secrets["ui_2_0_pioneer"] = bool(not user_logs.empty)
 
         trophies["secret_feats"][user] = user_secrets
 
@@ -611,8 +611,7 @@ def get_user_titles(user, trophies, return_all=False):
         "🍵 Tea Connoisseur",
         "🥛 Oat Milk Fanatic",
         "⚡ Velocity Pilot",
-        "🌱 Eco Brewer",
-        "🌟 UI 2.0 Pioneer"
+        "🌱 Eco Brewer"
     ]
     for bt in base_titles:
         if bt not in titles:
