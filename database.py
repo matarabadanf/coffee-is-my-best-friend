@@ -31,14 +31,28 @@ def get_data():
     except Exception:
         return []
 
-def insert_click(user: str, value: int, drink_id: int):
+def insert_click(user: str, value: int, drink_id: int, country: str = None, city: str = None):
     supabase = get_supabase_client()
     event_data = {
         "user_name": user,
         "value": value,
         "drink_id": drink_id
     }
-    return supabase.table("clicks").insert(event_data).execute()
+    if country:
+        event_data["country"] = country
+    if city:
+        event_data["city"] = city
+        
+    try:
+        return supabase.table("clicks").insert(event_data).execute()
+    except Exception:
+        # Graceful fallback if country/city columns have not yet been added to Supabase clicks table
+        fallback_data = {
+            "user_name": user,
+            "value": value,
+            "drink_id": drink_id
+        }
+        return supabase.table("clicks").insert(fallback_data).execute()
 
 def get_transactions():
     supabase = get_supabase_client()

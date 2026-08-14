@@ -193,7 +193,7 @@ with st.container(border=True):
     st.markdown("#### 🔒 Location Privacy")
     st.caption("Control whether your physical city and country are broadcasted in the real-time activity feed.")
     
-    current_share_loc = prefs.get(selected_user, {}).get("share_live_location", False)
+    current_share_loc = prefs.get(selected_user, {}).get("share_live_location", True)
     share_loc_toggle = st.toggle(
         "📡 Broadcast location in real-time activity feed",
         value=current_share_loc,

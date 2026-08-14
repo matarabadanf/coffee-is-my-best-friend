@@ -285,21 +285,38 @@ if not df_filtered.empty:
         
         travel_logs = []
         if transactions:
-            for tx in transactions:
-                if tx.get("transaction_type") == "drink_log":
-                    meta = tx.get("metadata", {})
-                    c_code = meta.get("country") if isinstance(meta, dict) else None
-                    if c_code and c_code in TRAVEL_COUNTRIES:
-                        u = tx.get("user_name")
-                        info = TRAVEL_COUNTRIES[c_code]
-                        c_city = normalize_city_name(meta.get("city") or get_cities_for_country(c_code)[0])
-                        travel_logs.append({
-                            "User": u,
-                            "City": f"{c_city} ({info['flag']})",
-                            "Country": f"{info['flag']} {info['name']}",
-                            "Continent": info["continent"],
-                            "Drinks": 1
-                        })
+            # Reconcile with active clicks from data
+            user_click_counts = df_filtered["user_name"].value_counts().to_dict() if not df_filtered.empty else {}
+            drink_txs = [tx for tx in transactions if tx.get("transaction_type") == "drink_log"]
+            
+            # Group by user and take only latest active count
+            txs_by_user = {}
+            for tx in drink_txs:
+                u = tx.get("user_name")
+                if u not in txs_by_user:
+                    txs_by_user[u] = []
+                txs_by_user[u].append(tx)
+                
+            reconciled_txs = []
+            for u, tx_list in txs_by_user.items():
+                max_allowed = user_click_counts.get(u, len(tx_list))
+                sorted_txs = sorted(tx_list, key=lambda x: str(x.get("created_at", "")), reverse=True)[:max_allowed]
+                reconciled_txs.extend(sorted_txs)
+                
+            for tx in reconciled_txs:
+                meta = tx.get("metadata", {})
+                c_code = meta.get("country") if isinstance(meta, dict) else None
+                if c_code and c_code in TRAVEL_COUNTRIES:
+                    u = tx.get("user_name")
+                    info = TRAVEL_COUNTRIES[c_code]
+                    c_city = normalize_city_name(meta.get("city") or get_cities_for_country(c_code)[0])
+                    travel_logs.append({
+                        "User": u,
+                        "City": f"{c_city} ({info['flag']})",
+                        "Country": f"{info['flag']} {info['name']}",
+                        "Continent": info["continent"],
+                        "Drinks": 1
+                    })
         
         if not travel_logs:
             st.info("No travel location logs recorded yet. Once drinks are logged with country & city stamps, geographic breakdown analytics will appear here!")

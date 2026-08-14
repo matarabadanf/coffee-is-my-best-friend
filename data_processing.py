@@ -720,7 +720,8 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None):
         prefs_for_user = get_user_preferences(transactions, [user]).get(user, {})
         u_def_country = prefs_for_user.get("default_country", get_user_default_country(user))
         u_def_city = prefs_for_user.get("default_city", get_user_default_city(user))
-        passport = compute_passport_stats(transactions or [], user, u_def_country, u_def_city)
+        clicks_for_u = user_logs.to_dict("records") if not user_logs.empty else None
+        passport = compute_passport_stats(transactions or [], user, u_def_country, u_def_city, clicks_data=clicks_for_u)
         u_unique_foreign_countries = len([c for c in passport["countries_visited"] if c != u_def_country])
         u_unique_cities = len(passport["cities_visited"])
 
@@ -1106,7 +1107,7 @@ def get_user_preferences(transactions, users):
             "ui_style": "Modern Flat", 
             "default_country": get_user_default_country(u),
             "default_city": get_user_default_city(u),
-            "share_live_location": False
+            "share_live_location": True
         } for u in users
     }
     

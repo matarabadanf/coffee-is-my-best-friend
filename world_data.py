@@ -586,9 +586,10 @@ def compute_passport_stats(
     user: str = None, 
     default_country: str = None, 
     default_city: str = None,
-    drink_type: str = "all"
+    drink_type: str = "all",
+    clicks_data: list[dict] = None
 ) -> dict:
-    """Compute comprehensive country and city travel passport statistics with multi-user & beverage filters."""
+    """Compute comprehensive country and city travel passport statistics with multi-user, beverage & clicks synchronization."""
     countries_visited = set()
     continents_reached = set()
     cities_visited = set()
@@ -605,66 +606,105 @@ def compute_passport_stats(
     def_country = default_country or (get_user_default_country(user) if not is_all_users else DEFAULT_COUNTRY)
     def_city = default_city or (get_user_default_city(user) if not is_all_users else "Madrid")
 
+    # Reconcile with clicks_data if provided (so deleted clicks are purged from location stats)
+    valid_txs = []
     if transactions:
-        for tx in transactions:
-            if tx.get("transaction_type") != "drink_log":
-                continue
+        all_drink_txs = [t for t in transactions if t.get("transaction_type") == "drink_log"]
+        if clicks_data is not None:
+            click_user_counts: dict[str, int] = {}
+            for c in clicks_data:
+                c_user = c.get("user_name")
+                click_user_counts[c_user] = click_user_counts.get(c_user, 0) + 1
+
+            txs_by_user: dict[str, list[dict]] = {}
+            for tx in all_drink_txs:
+                tx_u = tx.get("user_name")
+                if tx_u not in txs_by_user:
+                    txs_by_user[tx_u] = []
+                txs_by_user[tx_u].append(tx)
                 
-            tx_user = tx.get("user_name")
-            if not is_all_users and tx_user != user:
+            for tx_u, u_tx_list in txs_by_user.items():
+                max_allowed = click_user_counts.get(tx_u, 0)
+                sorted_u_txs = sorted(u_tx_list, key=lambda x: str(x.get("created_at", "")), reverse=True)[:max_allowed]
+                valid_txs.extend(sorted_u_txs)
+        else:
+            valid_txs = all_drink_txs
+
+    # Incorporate direct location from clicks_data if country/city columns exist in clicks table
+    if clicks_data:
+        has_direct_loc_clicks = any("country" in c and c["country"] for c in clicks_data)
+        if has_direct_loc_clicks:
+            direct_tx_format = []
+            for c in clicks_data:
+                if c.get("country"):
+                    direct_tx_format.append({
+                        "user_name": c.get("user_name"),
+                        "created_at": c.get("created_at"),
+                        "metadata": {
+                            "country": c.get("country"),
+                            "city": c.get("city"),
+                            "drink_id": c.get("drink_id", 1)
+                        }
+                    })
+            if direct_tx_format:
+                valid_txs = direct_tx_format
+
+    for tx in valid_txs:
+        tx_user = tx.get("user_name")
+        if not is_all_users and tx_user != user:
+            continue
+
+        meta = tx.get("metadata", {})
+        if not isinstance(meta, dict):
+            continue
+
+        # Beverage Type Filtering
+        d_id = meta.get("drink_id")
+        d_name = str(meta.get("drink", "")).lower()
+        if drink_type == "coffee":
+            if d_id is not None and d_id not in [1, 3]:
+                continue
+            if d_id is None and "coffee" not in d_name:
+                continue
+        elif drink_type == "tea":
+            if d_id is not None and d_id not in [2, 4]:
+                continue
+            if d_id is None and "tea" not in d_name:
                 continue
 
-            meta = tx.get("metadata", {})
-            if not isinstance(meta, dict):
-                continue
-
-            # Beverage Type Filtering
-            d_id = meta.get("drink_id")
-            d_name = str(meta.get("drink", "")).lower()
-            if drink_type == "coffee":
-                if d_id is not None and d_id not in [1, 3]:
-                    continue
-                if d_id is None and "coffee" not in d_name:
-                    continue
-            elif drink_type == "tea":
-                if d_id is not None and d_id not in [2, 4]:
-                    continue
-                if d_id is None and "tea" not in d_name:
-                    continue
-
-            country_code = meta.get("country")
-            city_name = meta.get("city") or (get_cities_for_country(country_code)[0] if country_code else None)
+        country_code = meta.get("country")
+        city_name = meta.get("city") or (get_cities_for_country(country_code)[0] if country_code else None)
+        
+        if country_code and country_code in TRAVEL_COUNTRIES:
+            norm_city = normalize_city_name(city_name)
+            total_logged_with_location += 1
+            countries_visited.add(country_code)
+            continents_reached.add(TRAVEL_COUNTRIES[country_code]["continent"])
             
-            if country_code and country_code in TRAVEL_COUNTRIES:
-                norm_city = normalize_city_name(city_name)
-                total_logged_with_location += 1
-                countries_visited.add(country_code)
-                continents_reached.add(TRAVEL_COUNTRIES[country_code]["continent"])
+            if norm_city:
+                cities_visited.add((country_code, norm_city))
+                city_key = (country_code, norm_city)
+                city_counts[city_key] = city_counts.get(city_key, 0) + 1
                 
-                if norm_city:
-                    cities_visited.add((country_code, norm_city))
-                    city_key = (country_code, norm_city)
-                    city_counts[city_key] = city_counts.get(city_key, 0) + 1
-                    
-                    if city_key not in city_users_breakdown:
-                        city_users_breakdown[city_key] = {}
-                    city_users_breakdown[city_key][tx_user] = city_users_breakdown[city_key].get(tx_user, 0) + 1
-                    
-                    if country_code not in country_cities_map:
-                        country_cities_map[country_code] = set()
-                    country_cities_map[country_code].add(norm_city)
-
-                    if is_capital_city(country_code, norm_city):
-                        capital_cities_visited.add((country_code, norm_city))
-                    if is_coffee_capital(norm_city):
-                        coffee_capitals_visited.add(norm_city)
-
-                # Determine if drink is abroad
-                user_home_country = get_user_default_country(tx_user) if is_all_users else def_country
-                if country_code != user_home_country:
-                    drinks_abroad += 1
+                if city_key not in city_users_breakdown:
+                    city_users_breakdown[city_key] = {}
+                city_users_breakdown[city_key][tx_user] = city_users_breakdown[city_key].get(tx_user, 0) + 1
                 
-                country_counts[country_code] = country_counts.get(country_code, 0) + 1
+                if country_code not in country_cities_map:
+                    country_cities_map[country_code] = set()
+                country_cities_map[country_code].add(norm_city)
+
+                if is_capital_city(country_code, norm_city):
+                    capital_cities_visited.add((country_code, norm_city))
+                if is_coffee_capital(norm_city):
+                    coffee_capitals_visited.add(norm_city)
+
+            # Determine if drink is abroad
+            user_home_country = get_user_default_country(tx_user) if is_all_users else def_country
+            if country_code != user_home_country:
+                drinks_abroad += 1
+            
+            country_counts[country_code] = country_counts.get(country_code, 0) + 1
 
     most_visited_foreign = None
     if country_counts:
@@ -697,7 +737,7 @@ def compute_passport_stats(
         "diversity_score": diversity_score
     }
 
-def get_travel_leaderboard(transactions: list[dict], users: list[str]) -> list[dict]:
+def get_travel_leaderboard(transactions: list[dict], users: list[str], clicks_data: list[dict] = None) -> list[dict]:
     """Returns sorted list of travel stats including unique cities for leaderboard."""
     leaderboard = []
     

@@ -205,8 +205,8 @@ def handle_drink_log(drink_id, drink_name, temp_name, country_code, city_name):
         st.warning(f"Wait {int(60 - (now - last_click_time).total_seconds())}s before logging again!")
         return
     try:
-        # 1. Insert Click Record (1: Hot Coffee, 3: Iced Coffee, 2: Hot Tea, 4: Iced Tea)
-        insert_click(selected_user, 1, drink_id)
+        # 1. Insert Click Record with location columns (1: Hot Coffee, 3: Iced Coffee, 2: Hot Tea, 4: Iced Tea)
+        insert_click(selected_user, 1, drink_id, country=country_code, city=city_name)
         # 2. Insert Coin Transaction with explicit temperature, country, and city metadata
         insert_transaction(
             selected_user, 

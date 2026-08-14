@@ -102,7 +102,8 @@ passport = compute_passport_stats(
     user=active_user_filter, 
     default_country=user_def_country, 
     default_city=user_def_city,
-    drink_type=drink_type_filter
+    drink_type=drink_type_filter,
+    clicks_data=data
 )
 
 # Subtitle banner
@@ -343,7 +344,7 @@ st.divider()
 st.subheader("🏆 Crew Travel Leaderboard")
 st.caption("Compare international reach, urban coverage, and passport diversity across the team.")
 
-leaderboard = get_travel_leaderboard(transactions or [], users)
+leaderboard = get_travel_leaderboard(transactions or [], users, clicks_data=data)
 lb_df = pd.DataFrame(leaderboard)
 lb_df.index = lb_df.index + 1
 lb_df = lb_df.rename(columns={
