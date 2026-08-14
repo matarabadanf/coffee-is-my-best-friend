@@ -381,14 +381,14 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None, achiev
             daily_caff = user_logs.groupby("date_only")["caffeine_mg"].sum()
             u_combustion_days = int((daily_caff >= 400).sum())
             
-            # Passport stats
-            passport = compute_passport_stats(transactions=transactions, user=user, clicks_data=user_logs)
+            # Passport stats (strictly from post-release logs)
+            passport = compute_passport_stats(transactions=None, user=user, clicks_data=user_logs)
             u_countries = len(passport.get("countries_visited", set()))
             u_cities = len(passport.get("cities_visited", set()))
         else:
-            passport = compute_passport_stats(transactions=transactions, user=user, clicks_data=None)
-            u_countries = len(passport.get("countries_visited", set()))
-            u_cities = len(passport.get("cities_visited", set()))
+            passport = {}
+            u_countries = 0
+            u_cities = 0
             u_total = u_coffee = u_tea = u_iced = u_active_days = u_max_streak = 0
             u_early = u_night = u_surge_days = u_weekend = u_combustion_days = 0
 
@@ -517,15 +517,24 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None, achiev
         unlocked_set = set(get_unlocked_themes(transactions or [], user))
         user_secrets["chromatic_sovereign"] = bool(len(unlocked_set) >= len(ALL_VALID_THEMES))
         
-        # Passport Travel Secrets
-        user_secrets["continent_hopper"] = len(passport.get("continents_visited", set())) >= 3
-        user_secrets["jet_lagged"] = passport.get("jet_lagged", False)
-        user_secrets["homebody"] = passport.get("max_home_streak", 0) >= 100
-        user_secrets["capital_tour"] = len(passport.get("capital_cities_visited", set())) >= 3
-        user_secrets["twin_cities"] = any(len(cities) >= 2 for cities in passport.get("country_cities_map", {}).values())
-        
-        coffee_caps_count = sum(passport.get("city_counts", {}).get(k, 0) for k in passport.get("city_counts", {}) if is_coffee_capital(k[1]))
-        user_secrets["coffee_capital"] = bool(len(passport.get("coffee_capitals_visited", set())) >= 2 or coffee_caps_count >= 3)
+        # Passport Travel Secrets (strictly evaluated from post-release logs)
+        if not user_logs.empty and passport:
+            user_secrets["continent_hopper"] = len(passport.get("continents_visited", set())) >= 3
+            user_secrets["jet_lagged"] = passport.get("jet_lagged", False)
+            user_secrets["homebody"] = passport.get("max_home_streak", 0) >= 100
+            user_secrets["capital_tour"] = len(passport.get("capital_cities_visited", set())) >= 3
+            user_secrets["twin_cities"] = any(len(cities) >= 2 for cities in passport.get("country_cities_map", {}).values())
+            
+            coffee_caps_count = sum(passport.get("city_counts", {}).get(k, 0) for k in passport.get("city_counts", {}) if is_coffee_capital(k[1]))
+            user_secrets["coffee_capital"] = bool(len(passport.get("coffee_capitals_visited", set())) >= 2 or coffee_caps_count >= 3)
+        else:
+            user_secrets["continent_hopper"] = False
+            user_secrets["jet_lagged"] = False
+            user_secrets["homebody"] = False
+            user_secrets["capital_tour"] = False
+            user_secrets["twin_cities"] = False
+            user_secrets["coffee_capital"] = False
+            
         user_secrets["ui_2_0_pioneer"] = bool(not user_logs.empty)
 
         trophies["secret_feats"][user] = user_secrets
