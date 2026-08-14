@@ -274,7 +274,7 @@ POPULAR_CITIES: dict[str, list[str]] = {
     "NL": ["Amsterdam", "Rotterdam", "The Hague", "Utrecht", "Eindhoven", "Groningen", "Maastricht"],
     "FR": ["Paris", "Lyon", "Marseille", "Bordeaux", "Nice", "Toulouse", "Strasbourg", "Lille", "Nantes"],
     "CZ": ["Prague", "Brno", "Ostrava", "Plzen", "Liberec", "Olomouc", "Ceske Budejovice"],
-    "ES": ["Madrid", "Barcelona", "Valencia", "Seville", "Malaga", "Bilbao", "Granada", "Palma"],
+    "ES": ["Madrid", "Barcelona", "Valencia", "Seville", "Malaga", "Bilbao", "Granada", "Palma", "Guadalajara", "Alcobendas", "Toledo", "Zaragoza", "Alicante", "Murcia", "San Sebastian", "Salamanca"],
     "IT": ["Rome", "Milan", "Florence", "Venice", "Naples", "Bologna", "Turin"],
     "DE": ["Berlin", "Munich", "Hamburg", "Frankfurt", "Cologne", "Stuttgart", "Dresden"],
     "GB": ["London", "Edinburgh", "Manchester", "Birmingham", "Glasgow", "Bristol", "Oxford", "Cambridge"],
@@ -352,6 +352,25 @@ CITY_COORDINATES: dict[tuple[str, str], tuple[float, float]] = {
     ("ES", "bilbao"): (43.2630, -2.9350),
     ("ES", "granada"): (37.1773, -3.5986),
     ("ES", "palma"): (39.5696, 2.6502),
+    ("ES", "guadalajara"): (40.6327, -3.1646),
+    ("ES", "alcobendas"): (40.5400, -3.6358),
+    ("ES", "toledo"): (39.8559, -4.0243),
+    ("ES", "alcala de henares"): (40.4820, -3.3640),
+    ("ES", "getafe"): (40.3071, -3.7332),
+    ("ES", "leganes"): (40.3282, -3.7635),
+    ("ES", "mostoles"): (40.3223, -3.8649),
+    ("ES", "alcorcon"): (40.3458, -3.8249),
+    ("ES", "fuenlabrada"): (40.2842, -3.7942),
+    ("ES", "san sebastian"): (43.3183, -1.9812),
+    ("ES", "santander"): (43.4623, -3.8099),
+    ("ES", "oviedo"): (43.3619, -5.8494),
+    ("ES", "salamanca"): (40.9701, -5.6635),
+    ("ES", "valladolid"): (41.6523, -4.7245),
+    ("ES", "zaragoza"): (41.6488, -0.8891),
+    ("ES", "alicante"): (38.3452, -0.4810),
+    ("ES", "murcia"): (37.9922, -1.1307),
+    ("ES", "cordoba"): (37.8882, -4.7794),
+    ("ES", "cadiz"): (36.5271, -6.2886),
     # Italy
     ("IT", "rome"): (41.9028, 12.4964),
     ("IT", "milan"): (45.4642, 9.1900),
@@ -469,23 +488,53 @@ def get_cities_for_country(country_code: str) -> list[str]:
     return [country_info["name"]] if country_info else ["Central"]
 
 def geocode_city_online(country_code: str, city_name: str) -> tuple[float, float] | None:
-    """Queries OpenStreetMap Nominatim for accurate coordinates of any custom city or town worldwide."""
-    c_info = TRAVEL_COUNTRIES.get(country_code.upper())
-    country_name = c_info["name"] if c_info else country_code
-    query = f"{city_name}, {country_name}"
+    """Queries OpenStreetMap Nominatim with structured city & country parameters for precise municipality coordinates."""
+    c_code = country_code.upper()
     
-    url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(query)}&format=json&limit=1"
-    req = urllib.request.Request(url, headers={"User-Agent": "CoffeeIsMyBestFriend/1.0 (TravelTracker)"})
+    # 1. Structured query with countrycodes filter
+    params = {
+        "city": city_name,
+        "countrycodes": c_code.lower(),
+        "format": "json",
+        "limit": "5"
+    }
+    url = f"https://nominatim.openstreetmap.org/search?{urllib.parse.urlencode(params)}"
+    req = urllib.request.Request(url, headers={"User-Agent": "CoffeeIsMyBestFriend/2.0 (CityTravel)"})
     
     try:
-        with urllib.request.urlopen(req, timeout=2.5) as resp:
+        with urllib.request.urlopen(req, timeout=3.0) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             if data and len(data) > 0:
-                lat = float(data[0]["lat"])
-                lon = float(data[0]["lon"])
-                return (lat, lon)
+                for d in data:
+                    if d.get("class") in ["place", "boundary"] and d.get("type") in ["city", "town", "administrative", "village", "municipality"]:
+                        return (float(d["lat"]), float(d["lon"]))
+                return (float(data[0]["lat"]), float(data[0]["lon"]))
     except Exception:
         pass
+        
+    # 2. Fallback query with q= and countrycodes
+    c_info = TRAVEL_COUNTRIES.get(c_code)
+    country_name = c_info["name"] if c_info else c_code
+    fallback_params = {
+        "q": f"{city_name}, {country_name}",
+        "countrycodes": c_code.lower(),
+        "format": "json",
+        "limit": "5"
+    }
+    fallback_url = f"https://nominatim.openstreetmap.org/search?{urllib.parse.urlencode(fallback_params)}"
+    req_fb = urllib.request.Request(fallback_url, headers={"User-Agent": "CoffeeIsMyBestFriend/2.0 (CityTravel)"})
+    
+    try:
+        with urllib.request.urlopen(req_fb, timeout=3.0) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if data and len(data) > 0:
+                for d in data:
+                    if d.get("class") in ["place", "boundary"] and d.get("type") in ["city", "town", "administrative", "village", "municipality"]:
+                        return (float(d["lat"]), float(d["lon"]))
+                return (float(data[0]["lat"]), float(data[0]["lon"]))
+    except Exception:
+        pass
+        
     return None
 
 def get_city_coordinates(country_code: str, city: str) -> tuple[float, float]:
