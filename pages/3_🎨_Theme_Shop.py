@@ -105,7 +105,7 @@ with st.container(border=True):
         elif is_owned:
             st.info("✅ **Theme Owned!**")
             if st.button(f"⚡ Equip `{preview_theme}` Now", use_container_width=True, key="equip_theme_btn"):
-                insert_transaction(selected_user, 0, "preference", {"theme": preview_theme, "ui_style": preview_style})
+                save_user_preference(selected_user, {"theme": preview_theme, "ui_style": preview_style})
                 st.success(f"Equipped {preview_theme} ({preview_style}) as default!")
                 st.rerun()
         else:

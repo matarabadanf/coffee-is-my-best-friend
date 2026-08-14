@@ -72,9 +72,12 @@ THEME_METADATA = {
     }
 }
 
-def inject_custom_css(theme="Latte (Light)", ui_style="Modern Flat", user=None):
-    from feature_flags import get_locked_sidebar_css
-    locked_sidebar_css = get_locked_sidebar_css(user)
+def inject_custom_css(theme="Latte (Light)", ui_style="Modern Flat", user=None, *args, **kwargs):
+    try:
+        from feature_flags import get_locked_sidebar_css
+        locked_sidebar_css = get_locked_sidebar_css(user)
+    except Exception:
+        locked_sidebar_css = ""
 
     # 1. Sanitize inputs
     if theme not in ALL_THEMES:
