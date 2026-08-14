@@ -1177,3 +1177,4 @@ def get_user_preferences(transactions=None, users=None, db_preferences=None):
                             prefs[u][k] = meta[k]
 
     return prefs
+    return prefs
