@@ -420,8 +420,10 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None, achiev
                     "level": tier["level"],
                     "name": tier["name"],
                     "target": target,
+                    "current": current_val,
                     "unlocked": unlocked,
-                    "progress": progress
+                    "progress": progress,
+                    "progress_pct": progress
                 })
             user_achievements[cat_key] = {
                 "title": cat_data["title"],

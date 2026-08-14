@@ -164,30 +164,32 @@ def compute_new_unlocks(user, before_snapshot, after_snapshot, is_dev_test=False
             "title_to_equip": f_info["title"]
         })
         
-    # 3. New Monarch Crowns (Weekly Coin Bonus awarded ONLY first time per calendar week)
+    # 3. New Monarch Crowns (Coin Bonus awarded ONLY once in lifetime per crown)
     new_crowns = after_snapshot["crowns"] - before_snapshot["crowns"]
-    current_week_str = pd.Timestamp.now().strftime("%Y-W%W")
     
     for crown in new_crowns:
-        # Check if user already received bonus coins for this crown during current calendar week
-        already_rewarded_this_week = False
+        # Check if user has EVER received bonus coins for this crown
+        already_rewarded = False
         if transactions:
             for t in transactions:
                 if t.get("user_name") == user and t.get("transaction_type") == "shop":
                     meta = t.get("metadata", {})
                     if isinstance(meta, dict):
-                        if meta.get("monarch_week") == f"{crown}_{current_week_str}":
-                            already_rewarded_this_week = True
+                        if meta.get("monarch_crown") == crown or meta.get("monarch_title") == crown:
+                            already_rewarded = True
                             break
-                        if meta.get("item") == f"reward_monarch_{crown}_{current_week_str}":
-                            already_rewarded_this_week = True
+                        if meta.get("item", "").startswith(f"reward_monarch_{crown}"):
+                            already_rewarded = True
+                            break
+                        if meta.get("monarch_week", "").startswith(f"{crown}_"):
+                            already_rewarded = True
                             break
 
-        reward_coins = 250 if not already_rewarded_this_week else 0
+        reward_coins = 250 if not already_rewarded else 0
         desc = (
             f"You have claimed the sovereign throne as {crown}!" 
-            if not already_rewarded_this_week else 
-            f"You have claimed the sovereign throne as {crown}! (Weekly +250 🪙 bonus already collected this week)"
+            if not already_rewarded else 
+            f"You have claimed the sovereign throne as {crown}! (+250 🪙 crown bonus already collected previously)"
         )
         
         unlocks.append({
@@ -199,8 +201,7 @@ def compute_new_unlocks(user, before_snapshot, after_snapshot, is_dev_test=False
             "badge": crown,
             "desc": desc,
             "reward_coins": reward_coins,
-            "monarch_week": f"{crown}_{current_week_str}",
-            "reward_item_key": f"reward_monarch_{crown}_{current_week_str}",
+            "reward_item_key": f"reward_monarch_{crown}",
             "can_equip_title": True,
             "title_to_equip": crown
         })

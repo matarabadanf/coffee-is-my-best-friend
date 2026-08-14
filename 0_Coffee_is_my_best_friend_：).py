@@ -266,7 +266,7 @@ def handle_drink_log(drink_id, drink_name, temp_name, country_code, city_name):
                         {
                             "item": item.get("reward_item_key", f"reward_{item.get('title')}"), 
                             "reward_unlock": item.get('title'),
-                            "monarch_week": item.get("monarch_week")
+                            "monarch_crown": item.get("title") if item.get("type") == "monarch" else None
                         }
                     )
 

@@ -399,19 +399,21 @@ with tab2:
                 
                 for t in cat_data["tiers"]:
                     t_col1, t_col2 = st.columns([3, 1])
+                    t_cur = t.get("current", cat_data.get("current_val", 0))
+                    t_prog = t.get("progress_pct", t.get("progress", 0.0))
                     with t_col1:
                         if t["unlocked"]:
                             st.markdown(f"**✅ {t['level']} Tier — {t['name']}**")
-                            st.caption(f"Goal: `{t['target']}` &bull; Current: `{t['current']}`")
+                            st.caption(f"Goal: `{t['target']}` &bull; Current: `{t_cur}`")
                         else:
                             st.markdown(f"**🔒 {t['level']} Tier — {t['name']}**")
-                            st.caption(f"Goal: `{t['target']}` &bull; Current: `{t['current']}` (`{int(t['progress_pct']*100)}%`)")
-                        st.progress(t["progress_pct"])
+                            st.caption(f"Goal: `{t['target']}` &bull; Current: `{t_cur}` (`{int(t_prog*100)}%`)")
+                        st.progress(t_prog)
                     with t_col2:
                         if t["unlocked"]:
                             st.success(f"**{t['level']}**")
                         else:
-                            st.info(f"`{t['current']}/{t['target']}`")
+                            st.info(f"`{t_cur}/{t['target']}`")
 
 
 # =========================================================================
