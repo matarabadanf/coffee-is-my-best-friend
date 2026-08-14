@@ -224,6 +224,7 @@ ACHIEVEMENT_TIERS = {
             {"level": "Silver", "name": "🔥 Flamethrower", "target": 5},
             {"level": "Gold", "name": "🌋 Inferno Beast", "target": 15},
             {"level": "Diamond", "name": "👑 Combustion Monarch", "target": 35},
+<<<<<<< HEAD
         ]
     },
     "world_explorer": {
@@ -248,7 +249,36 @@ ACHIEVEMENT_TIERS = {
             {"level": "Gold",    "name": "🚇 Metropolitan",       "target": 18},
             {"level": "Diamond", "name": "✈️ Cosmopolitan",       "target": 35},
             {"level": "Master",  "name": "👑 Global Citizen",      "target": 60},
+=======
+>>>>>>> main
         ]
+<<<<<<< HEAD
+=======
+    },
+    "world_explorer": {
+        "title": "🌍 World Explorer",
+        "icon": "🌍",
+        "desc": "Visit different countries and expand your passport.",
+        "tiers": [
+            {"level": "Bronze",  "name": "🗺️ First Stamp",       "target": 1},
+            {"level": "Silver",  "name": "✈️ Frequent Flyer",     "target": 3},
+            {"level": "Gold",    "name": "🌎 Globe Trotter",      "target": 8},
+            {"level": "Diamond", "name": "🌐 World Traveler",     "target": 15},
+            {"level": "Master",  "name": "👑 Nomad Supreme",      "target": 25},
+        ]
+    },
+    "metropolis_explorer": {
+        "title": "🏙️ Metropolis Explorer",
+        "icon": "🏙️",
+        "desc": "Visit different cities across your coffee journeys.",
+        "tiers": [
+            {"level": "Bronze",  "name": "🚶 Urban Roamer",       "target": 3},
+            {"level": "Silver",  "name": "🚲 City Hopper",        "target": 8},
+            {"level": "Gold",    "name": "🚇 Metropolitan",       "target": 18},
+            {"level": "Diamond", "name": "✈️ Cosmopolitan",       "target": 35},
+            {"level": "Master",  "name": "👑 Global Citizen",      "target": 60},
+        ]
+>>>>>>> 2f466cc (feat(celebrations): add weekly monarch coin caps, tier upgrade tests, UI 2.0 welcome tour, and emoji badges)
     }
 }
 
@@ -922,6 +952,11 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None):
         user_secrets["alchemist"] = alchemist_unlocked
         user_secrets["thermal_sandwich"] = sandwich_unlocked
         user_secrets["chromatic_sovereign"] = chromatic_unlocked
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> main
         user_secrets["continent_hopper"] = continent_hopper_unlocked
         user_secrets["jet_lagged"] = jet_lagged_unlocked
         user_secrets["homebody"] = homebody_unlocked
@@ -933,6 +968,10 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None):
         coffee_caps_count = sum(passport.get("city_counts", {}).get(k, 0) for k in passport.get("city_counts", {}) if is_coffee_capital(k[1]))
         user_secrets["coffee_capital"] = bool(len(passport.get("coffee_capitals_visited", set())) >= 2 or coffee_caps_count >= 3)
         user_secrets["ui_2_0_pioneer"] = bool(not user_logs.empty or len(unlocked_set) > 1 or passport.get("countries_count", 0) > 0)
+<<<<<<< HEAD
+=======
+>>>>>>> 2f466cc (feat(celebrations): add weekly monarch coin caps, tier upgrade tests, UI 2.0 welcome tour, and emoji badges)
+>>>>>>> main
 
         trophies["secret_feats"][user] = user_secrets
 
