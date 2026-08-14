@@ -28,7 +28,7 @@ transactions = get_transactions()
 prefs = get_user_preferences(transactions, users)
 user_theme = prefs.get(selected_user, {}).get("theme", "Latte (Light)")
 user_style = prefs.get(selected_user, {}).get("ui_style", "Modern Flat")
-inject_custom_css(user_theme, user_style)
+inject_custom_css(user_theme, user_style, user=selected_user)
 
 df, df_coffee, df_tea, coffee_scores, tea_scores = process_raw_data(data, users)
 trophies = get_gamification_metrics(df_coffee, df_tea, users, transactions=transactions)

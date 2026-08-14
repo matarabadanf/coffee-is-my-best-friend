@@ -23,7 +23,7 @@ from world_data import (
     get_user_default_country,
     get_flag_img_html
 )
-from feature_flags import is_unlocked, is_dev_mode
+from feature_flags import is_unlocked, is_dev_mode, is_patch_notes_active, get_current_madrid_time
 from components.ui import (
     inject_custom_css, 
     render_app_header, 
@@ -48,8 +48,8 @@ prefs = get_user_preferences(transactions, users)
 user_theme = prefs.get(selected_user, {}).get("theme", "Latte (Light)")
 user_style = prefs.get(selected_user, {}).get("ui_style", "Modern Flat")
 
-# Inject Active Theme & CSS
-inject_custom_css(user_theme, user_style)
+# Inject Active Theme & CSS (with surprise sidebar concealment for non-devs)
+inject_custom_css(user_theme, user_style, user=selected_user)
 
 trophies = get_gamification_metrics(df_coffee, df_tea, users)
 coin_balances = get_coin_balances(df, transactions, users)
@@ -72,7 +72,34 @@ render_app_header(
 # --- 1.1 Standalone Daily Trivia Quote (Outside the header box) ---
 render_daily_fact_quote()
 
-now = pd.Timestamp.now(tz="Europe/Madrid") if df.empty else pd.Timestamp.now(tz="UTC").tz_convert("Europe/Madrid")
+# --- Time Context (with simulation support) ---
+now = get_current_madrid_time() if df.empty else get_current_madrid_time()
+
+# --- Drop 1 World Update Patch Notes Banner (Active for 7 days upon release or in Dev Preview) ---
+if is_patch_notes_active("world_update", dev_bypass=is_dev_mode(selected_user)):
+    with st.expander("🌍 **Drop 1 Patch Notes — World Update & Travel Passport is LIVE! (Tap to expand)**", expanded=True):
+        pn1, pn2, pn3 = st.columns(3)
+        with pn1:
+            st.markdown("""
+            #### 📍 **Travel Logging & Home Bases**
+            - ✈️ **Real-time Travel Tracker**: Select where you are physically drinking each cup directly on the beverage bar!
+            - 🏠 **Personalized Home Bases**: Configured per explorer (**Bea**: 🇳🇱 Netherlands, **Fer**: 🇫🇷 France, **Cris**: 🇨🇿 Czech Republic). Change anytime in [⚙️ Settings](pages/99_⚙️_Settings.py)!
+            - 🌐 **Full World Coverage**: 196+ recognized countries and territories with official flag graphics.
+            """)
+        with pn2:
+            st.markdown("""
+            #### 🗺️ **World Explorer & Passport**
+            - 🧭 **Interactive Travel Footprint**: Open [🌍 World Explorer](pages/4_🌍_World_Explorer.py) to view all pinned destinations with drink totals.
+            - 🛂 **Passport Analytics**: Live tracking of countries visited, continents reached, drinks abroad, top foreign destination, and diversity score.
+            - 📬 **Stamp Gallery**: Collect commemorative stamps for every destination!
+            """)
+        with pn3:
+            st.markdown("""
+            #### 🏆 **Mastery Tracks & Grimoire Secrets**
+            - 🎖️ **World Explorer Mastery Track**: 5 prestigious tiers in the Trophy Room from 🥉 *First Stamp* to 👑 *Nomad Supreme*.
+            - 🕵️ **3 New Secret Feats**: Discover the hidden lore of 🌏 *Continent Hopper*, ✈️ *Jet Lagged*, and 🏠 *The Homebody*!
+            - 📊 **Travel Analytics**: New dedicated Travel & Geography tab on the [📈 Charts Page](pages/1_📈_Graphs!_Graphs!_Graphs!.py).
+            """)
 
 # --- What's New Announcement Banner (Active during launch week: Aug 14 - Aug 21, 2026) ---
 launch_week_end = pd.Timestamp("2026-08-21 23:59:59", tz="Europe/Madrid")
@@ -359,6 +386,7 @@ with nav_col:
             st.page_link("pages/1_📈_Graphs!_Graphs!_Graphs!.py", label="Analytics & Charts", icon="📈")
             st.page_link("pages/2_🏆_Trophy_Room.py", label="Trophies & Badges", icon="🏆")
         with n2:
-            st.page_link("pages/4_🌍_World_Explorer.py", label="World Explorer", icon="🌍")
+            if is_unlocked("world_update", dev_bypass=is_dev_mode(selected_user)):
+                st.page_link("pages/4_🌍_World_Explorer.py", label="World Explorer", icon="🌍")
             st.page_link("pages/3_🎨_Theme_Shop.py", label="Theme Boutique", icon="🎨")
             st.page_link("pages/99_⚙️_Settings.py", label="Settings", icon="⚙️")

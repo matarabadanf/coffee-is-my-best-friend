@@ -43,7 +43,7 @@ preview_theme = st.session_state.theme_shop_picker
 preview_style = st.session_state.theme_shop_style_picker
 
 # Inject preview CSS live
-inject_custom_css(preview_theme, preview_style)
+inject_custom_css(preview_theme, preview_style, user=selected_user)
 
 # --- Header ---
 st.title("🎨 Theme Boutique & Studio")

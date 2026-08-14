@@ -43,7 +43,7 @@ prefs = get_user_preferences(transactions, users)
 
 user_theme = prefs.get(selected_user, {}).get("theme", "Latte (Light)")
 user_style = prefs.get(selected_user, {}).get("ui_style", "Modern Flat")
-inject_custom_css(user_theme, user_style)
+inject_custom_css(user_theme, user_style, user=selected_user)
 
 user_coins = coin_balances.get(selected_user, 0)
 user_streak = trophies.get("streaks", {}).get(selected_user, 0)
