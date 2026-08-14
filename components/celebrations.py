@@ -107,8 +107,8 @@ def compute_new_unlocks(user, before_snapshot, after_snapshot, is_dev_test=False
     """
     unlocks = []
     
-    # Dev test trigger for Fer (or dev mode testing)
-    if is_dev_test and user == "Fer":
+    # Dev test trigger (generic dev mode testing)
+    if is_dev_test:
         unlocks.extend(get_dev_test_payload(user))
         
     # 1. New Tiers & Tier Upgrades

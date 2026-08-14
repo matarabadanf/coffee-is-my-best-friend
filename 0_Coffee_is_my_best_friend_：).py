@@ -89,7 +89,7 @@ render_daily_fact_quote()
 now = get_current_madrid_time() if df.empty else get_current_madrid_time()
 
 # --- Drop 1 World Update & UI 2.0 Patch Notes Banner (Active for 7 days upon release or in Dev Preview) ---
-if is_patch_notes_active("world_update", dev_bypass=is_dev_mode(selected_user)):
+if is_patch_notes_active("world_update"):
     with st.expander("🌍 **Drop 1 Patch Notes — World Explorer & UI 2.0 Major Update is LIVE! (Tap to expand)**", expanded=True):
         pn1, pn2, pn3 = st.columns(3)
         with pn1:
@@ -119,7 +119,7 @@ if is_patch_notes_active("world_update", dev_bypass=is_dev_mode(selected_user)):
 # --- Version 2.0 Launch Banner (Active Aug 14 - Aug 21, 2026, suppressed once Drop 1 is active) ---
 v2_launch_start = pd.Timestamp("2026-08-14 00:00:00", tz="Europe/Madrid")
 v2_launch_end = pd.Timestamp("2026-08-21 23:59:59", tz="Europe/Madrid")
-if (v2_launch_start <= now <= v2_launch_end) and not is_unlocked("world_update", dev_bypass=is_dev_mode(selected_user)):
+if (v2_launch_start <= now <= v2_launch_end) and not is_unlocked("world_update"):
     with st.expander("✨ **What's New in Version 2.0 & Launch Week PIN Setup! (Tap to expand)**", expanded=True):
         w1, w2, w3 = st.columns(3)
         with w1:
@@ -489,7 +489,7 @@ with nav_col:
             st.page_link("pages/1_📈_Graphs!_Graphs!_Graphs!.py", label="Analytics & Charts", icon="📈")
             st.page_link("pages/2_🏆_Trophy_Room.py", label="Trophies & Badges", icon="🏆")
         with n2:
-            if is_unlocked("world_update", dev_bypass=is_dev_mode(selected_user)):
+            if is_unlocked("world_update"):
                 st.page_link("pages/4_🌍_World_Explorer.py", label="World Explorer", icon="🌍")
             st.page_link("pages/3_🎨_Theme_Shop.py", label="Theme Boutique", icon="🎨")
             st.page_link("pages/99_⚙️_Settings.py", label="Settings", icon="⚙️")

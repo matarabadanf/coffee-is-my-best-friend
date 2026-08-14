@@ -58,7 +58,7 @@ def get_current_madrid_time() -> pd.Timestamp:
     return pd.Timestamp.now(tz="Europe/Madrid")
 
 def is_dev_mode(user: str = None) -> bool:
-    """Check if current session has dev privileges. Fer is the developer and has automatic bypass."""
+    """Check if current session has explicit dev parameter."""
     try:
         from utils import is_pin_verified
     except ImportError:
@@ -66,11 +66,7 @@ def is_dev_mode(user: str = None) -> bool:
             return False
 
     current_user = user or st.session_state.get("user", "") or st.query_params.get("user", "")
-    if current_user == "Fer":
-        return True
-
-    return (st.query_params.get("dev") == "1" or
-            is_pin_verified(current_user))
+    return (st.query_params.get("dev") == "1" or is_pin_verified(current_user))
 
 def is_unlocked(feature_key: str, dev_bypass: bool = False) -> bool:
     """Check if a feature is unlocked based on date/timezone or dev bypass."""

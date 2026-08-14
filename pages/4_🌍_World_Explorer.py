@@ -30,10 +30,10 @@ st.set_page_config(page_title="World Explorer", page_icon="🌍", layout="wide")
 users = ["Cris", "Bea", "Fer"]
 selected_user = enforce_user_identity(users)
 
-# 2. Guard Pattern — Fer has automatic dev bypass
-if not is_unlocked("world_update", dev_bypass=is_dev_mode(selected_user)):
+# 2. Guard Pattern
+if not is_unlocked("world_update"):
     st.markdown(f"### {get_countdown_text('world_update')}")
-    st.info("The 🌍 **World Update** is scheduled to unlock on **September 1, 2026**! Preview is available for Fer or via `?dev=1`.")
+    st.info("The 🌍 **World Update** is scheduled to unlock at **15:10 Madrid Time**!")
     st.stop()
 
 # 3. Data Loading & Styling
