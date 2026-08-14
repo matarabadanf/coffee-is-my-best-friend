@@ -61,12 +61,6 @@ user_style = prefs.get(selected_user, {}).get("ui_style", "Modern Flat")
 # Inject Active Theme & CSS (with surprise sidebar concealment for non-devs)
 inject_custom_css(user_theme, user_style, user=selected_user)
 
-# Automatic first-time Welcome to UI 2.0 celebration & feature tour trigger
-user_seen_ui2 = prefs.get(selected_user, {}).get("has_seen_ui_2_0", False)
-if not user_seen_ui2 and "celebration_unlocks" not in st.session_state:
-    st.session_state["celebration_unlocks"] = get_ui_2_0_welcome_payload(selected_user)
-    save_user_preference(selected_user, {"has_seen_ui_2_0": True})
-
 # Check and render any pending celebration popup dialogs
 trigger_celebration_popup_if_pending(selected_user)
 
@@ -252,6 +246,14 @@ def handle_drink_log(drink_id, drink_name, temp_name, country_code, city_name):
             after_snapshot, 
             transactions=fresh_tx
         )
+
+        # Automatic first-time Welcome to UI 2.0 celebration & feature tour trigger on first drink logged in UI 2.0
+        user_seen_ui2 = prefs.get(selected_user, {}).get("has_seen_ui_2_0", False)
+        if not user_seen_ui2:
+            if new_unlocks is None:
+                new_unlocks = []
+            new_unlocks.extend(get_ui_2_0_welcome_payload(selected_user))
+            save_user_preference(selected_user, {"has_seen_ui_2_0": True})
 
         if new_unlocks:
             st.session_state["celebration_unlocks"] = new_unlocks

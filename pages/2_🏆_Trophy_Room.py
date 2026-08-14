@@ -82,6 +82,7 @@ with tab1:
     st.divider()
     
     hof_data = trophies.get("monarch_hall_of_fame", {})
+    all_hof = trophies.get("all_trophies_hof", {})
     
     # Monarch Record Cards Grid
     st.markdown("#### 🌟 The 4 Supreme Monarch Thrones")
@@ -95,21 +96,21 @@ with tab1:
             addict = trophies.get("caffeine_addict")
             if addict:
                 u_em = prefs.get(addict, {}).get("emoji", "☕")
-                st.success(f"**{u_em} {addict}** reigns supreme with the most coffees in the past 7 days!")
+                st.success(f"**{u_em} {addict}** reigns supreme with the most coffees in past 7 days!")
             else:
                 st.info("No coffee logged in the past 7 days.")
             st.caption("🏆 *Weekly Caffeine Champion*")
             
             caff_hof = hof_data.get("caffeine_emperor", {}).get("hall_of_fame", [])
             if caff_hof:
-                with st.expander("🏛️ Throne Lineage & Hall of Fame", expanded=False):
-                    for entry in caff_hof:
-                        u = entry["user"]
-                        em = prefs.get(u, {}).get("emoji", "☕")
-                        if entry["is_current"]:
-                            st.markdown(f"👑 **{em} {u}** &bull; `Reigning` ({entry['weeks_won']}w won)")
-                        else:
-                            st.markdown(f"📜 **{em} {u}** &bull; Last: *{entry['last_held']}* ({entry['weeks_won']}w won)")
+                st.markdown("<div style='font-size:0.82rem; margin-top:8px; line-height:1.45; border-top:1px dashed rgba(128,128,128,0.25); padding-top:6px;'><b>🏛️ Hall of Fame:</b></div>", unsafe_allow_html=True)
+                for entry in caff_hof:
+                    u = entry["user"]
+                    em = prefs.get(u, {}).get("emoji", "☕")
+                    if entry["is_current"]:
+                        st.markdown(f"&bull; 👑 **{em} {u}**: `Reigning` ({entry['weeks_won']}w)")
+                    else:
+                        st.markdown(f"&bull; 📜 **{em} {u}**: Last *{entry['last_held']}* ({entry['weeks_won']}w)")
 
     with r1c2:
         with st.container(border=True):
@@ -117,21 +118,21 @@ with tab1:
             purist = trophies.get("tea_purist")
             if purist:
                 u_em = prefs.get(purist, {}).get("emoji", "🍵")
-                st.success(f"**{u_em} {purist}** holds the highest Tea dedication ratio across all logs.")
+                st.success(f"**{u_em} {purist}** holds the highest Tea dedication ratio!")
             else:
                 st.info("No tea data found.")
             st.caption("🌿 *Supreme Tea Dedication*")
             
             tea_hof = hof_data.get("tea_sovereign", {}).get("hall_of_fame", [])
             if tea_hof:
-                with st.expander("🏛️ Throne Lineage & Hall of Fame", expanded=False):
-                    for entry in tea_hof:
-                        u = entry["user"]
-                        em = prefs.get(u, {}).get("emoji", "🍵")
-                        if entry["is_current"]:
-                            st.markdown(f"👑 **{em} {u}** &bull; `Reigning` ({entry['tea_count']} teas, {entry['tea_ratio']}x)")
-                        else:
-                            st.markdown(f"📜 **{em} {u}** &bull; Last: *{entry['last_held']}* ({entry['tea_count']} teas)")
+                st.markdown("<div style='font-size:0.82rem; margin-top:8px; line-height:1.45; border-top:1px dashed rgba(128,128,128,0.25); padding-top:6px;'><b>🏛️ Hall of Fame:</b></div>", unsafe_allow_html=True)
+                for entry in tea_hof:
+                    u = entry["user"]
+                    em = prefs.get(u, {}).get("emoji", "🍵")
+                    if entry["is_current"]:
+                        st.markdown(f"&bull; 👑 **{em} {u}**: `Reigning` ({entry['tea_count']} teas &bull; {entry['tea_ratio']}x)")
+                    else:
+                        st.markdown(f"&bull; 📜 **{em} {u}**: Last *{entry['last_held']}* ({entry['tea_count']} teas)")
 
     with r1c3:
         with st.container(border=True):
@@ -139,21 +140,21 @@ with tab1:
             ice = trophies.get("ice_monarch")
             if ice:
                 u_em = prefs.get(ice["user"], {}).get("emoji", "🧊")
-                st.success(f"**{u_em} {ice['user']}** leads the frost realm with **{ice['count']}** iced drinks logged!")
+                st.success(f"**{u_em} {ice['user']}** leads the frost realm with **{ice['count']}** iced drinks!")
             else:
                 st.info("No iced drinks logged yet.")
             st.caption("❄️ *Iced Beverage Master*")
             
             ice_hof = hof_data.get("ice_monarch", {}).get("hall_of_fame", [])
             if ice_hof:
-                with st.expander("🏛️ Throne Lineage & Hall of Fame", expanded=False):
-                    for entry in ice_hof:
-                        u = entry["user"]
-                        em = prefs.get(u, {}).get("emoji", "🧊")
-                        if entry["is_current"]:
-                            st.markdown(f"👑 **{em} {u}** &bull; `Reigning` ({entry['iced_count']} iced)")
-                        else:
-                            st.markdown(f"📜 **{em} {u}** &bull; Last: *{entry['last_held']}* ({entry['iced_count']} iced)")
+                st.markdown("<div style='font-size:0.82rem; margin-top:8px; line-height:1.45; border-top:1px dashed rgba(128,128,128,0.25); padding-top:6px;'><b>🏛️ Hall of Fame:</b></div>", unsafe_allow_html=True)
+                for entry in ice_hof:
+                    u = entry["user"]
+                    em = prefs.get(u, {}).get("emoji", "🧊")
+                    if entry["is_current"]:
+                        st.markdown(f"&bull; 👑 **{em} {u}**: `Reigning` ({entry['iced_count']} iced)")
+                    else:
+                        st.markdown(f"&bull; 📜 **{em} {u}**: Last *{entry['last_held']}* ({entry['iced_count']} iced)")
 
     with r1c4:
         with st.container(border=True):
@@ -161,21 +162,21 @@ with tab1:
             fire = trophies.get("combustion_monarch")
             if fire:
                 u_em = prefs.get(fire["user"], {}).get("emoji", "🔥")
-                st.success(f"**{u_em} {fire['user']}** reached Warp Speed with **{fire['count']}** On-Fire days (400+ mg)!")
+                st.success(f"**{u_em} {fire['user']}** reached Warp Speed with **{fire['count']}** On-Fire days!")
             else:
                 st.info("No On-Fire days recorded yet.")
             st.caption("🌋 *Most All-Time Days Over 400mg*")
             
             comb_hof = hof_data.get("combustion_monarch", {}).get("hall_of_fame", [])
             if comb_hof:
-                with st.expander("🏛️ Throne Lineage & Hall of Fame", expanded=False):
-                    for entry in comb_hof:
-                        u = entry["user"]
-                        em = prefs.get(u, {}).get("emoji", "🔥")
-                        if entry["is_current"]:
-                            st.markdown(f"👑 **{em} {u}** &bull; `Reigning` ({entry['fire_days']} days)")
-                        else:
-                            st.markdown(f"📜 **{em} {u}** &bull; Last: *{entry['last_held']}* ({entry['fire_days']} days)")
+                st.markdown("<div style='font-size:0.82rem; margin-top:8px; line-height:1.45; border-top:1px dashed rgba(128,128,128,0.25); padding-top:6px;'><b>🏛️ Hall of Fame:</b></div>", unsafe_allow_html=True)
+                for entry in comb_hof:
+                    u = entry["user"]
+                    em = prefs.get(u, {}).get("emoji", "🔥")
+                    if entry["is_current"]:
+                        st.markdown(f"&bull; 👑 **{em} {u}**: `Reigning` ({entry['fire_days']} days)")
+                    else:
+                        st.markdown(f"&bull; 📜 **{em} {u}**: Last *{entry['last_held']}* ({entry['fire_days']} days)")
 
     # Row 2 (Milestone Records)
     r2c1, r2c2, r2c3 = st.columns(3)
@@ -185,10 +186,18 @@ with tab1:
             longest_streak = trophies.get("longest_historical_streak")
             if longest_streak:
                 u_em = prefs.get(longest_streak["user"], {}).get("emoji", "🔥")
-                st.success(f"**{u_em} {longest_streak['user']}** set the all-time record with an unbroken **{longest_streak['days']}-day** streak!")
+                st.success(f"**{u_em} {longest_streak['user']}** holds the all-time record with an unbroken **{longest_streak['days']}-day** streak!")
             else:
                 st.info("No streaks recorded yet.")
             st.caption("🔥 *Longest daily logging streak in history.*")
+            
+            st_list = all_hof.get("streak_sovereign", [])
+            if st_list:
+                st.markdown("<div style='font-size:0.82rem; margin-top:8px; line-height:1.45; border-top:1px dashed rgba(128,128,128,0.25); padding-top:6px;'><b>🏛️ Hall of Fame:</b></div>", unsafe_allow_html=True)
+                for rank_idx, r in enumerate(st_list):
+                    medal = ["🥇", "🥈", "🥉"][rank_idx] if rank_idx < 3 else "&bull;"
+                    em = prefs.get(r["user"], {}).get("emoji", "☕")
+                    st.markdown(f"{medal} **{em} {r['user']}**: **{r['best_streak']}d** best *(active: {r['current_streak']}d)*")
 
     with r2c2:
         with st.container(border=True):
@@ -200,6 +209,14 @@ with tab1:
             else:
                 st.info("No records yet.")
             st.caption("🚀 *Most coffees in a single calendar day.*")
+            
+            vel_list = all_hof.get("velocity_monarch", [])
+            if vel_list:
+                st.markdown("<div style='font-size:0.82rem; margin-top:8px; line-height:1.45; border-top:1px dashed rgba(128,128,128,0.25); padding-top:6px;'><b>🏛️ Hall of Fame:</b></div>", unsafe_allow_html=True)
+                for rank_idx, r in enumerate(vel_list):
+                    medal = ["🥇", "🥈", "🥉"][rank_idx] if rank_idx < 3 else "&bull;"
+                    em = prefs.get(r["user"], {}).get("emoji", "☕")
+                    st.markdown(f"{medal} **{em} {r['user']}**: **{r['max_day']} coffees** *({r['best_date']})*")
 
     with r2c3:
         with st.container(border=True):
@@ -211,6 +228,14 @@ with tab1:
             else:
                 st.info("No monogamist streaks yet.")
             st.caption("🎯 *Longest unbroken single-beverage loyalty.*")
+            
+            mono_list = all_hof.get("monogamist", [])
+            if mono_list:
+                st.markdown("<div style='font-size:0.82rem; margin-top:8px; line-height:1.45; border-top:1px dashed rgba(128,128,128,0.25); padding-top:6px;'><b>🏛️ Hall of Fame:</b></div>", unsafe_allow_html=True)
+                for rank_idx, r in enumerate(mono_list):
+                    medal = ["🥇", "🥈", "🥉"][rank_idx] if rank_idx < 3 else "&bull;"
+                    em = prefs.get(r["user"], {}).get("emoji", "☕")
+                    st.markdown(f"{medal} **{em} {r['user']}**: **{r['streak']} logs** *({r['drink']})*")
 
     # Row 3
     r3c1, r3c2, r3c3 = st.columns(3)
@@ -220,10 +245,18 @@ with tab1:
             monday = trophies.get("monday_grump")
             if monday:
                 u_em = prefs.get(monday["user"], {}).get("emoji", "☕")
-                st.info(f"**{u_em} {monday['user']}** has logged **{monday['count']}** coffees fighting Monday morning blues.")
+                st.info(f"**{u_em} {monday['user']}** has logged **{monday['count']}** coffees fighting Monday blues.")
             else:
                 st.write("No Monday logs.")
             st.caption("☕ *Most caffeine consumed on Mondays.*")
+            
+            mon_list = all_hof.get("monday_grump", [])
+            if mon_list:
+                st.markdown("<div style='font-size:0.82rem; margin-top:8px; line-height:1.45; border-top:1px dashed rgba(128,128,128,0.25); padding-top:6px;'><b>🏛️ Hall of Fame:</b></div>", unsafe_allow_html=True)
+                for rank_idx, r in enumerate(mon_list):
+                    medal = ["🥇", "🥈", "🥉"][rank_idx] if rank_idx < 3 else "&bull;"
+                    em = prefs.get(r["user"], {}).get("emoji", "☕")
+                    st.markdown(f"{medal} **{em} {r['user']}**: **{r['count']} coffees**")
 
     with r3c2:
         with st.container(border=True):
@@ -234,6 +267,14 @@ with tab1:
             else:
                 st.write("No night owl activity.")
             st.caption("🌙 *Dominates the late night shift.*")
+            
+            night_list = all_hof.get("night_owl", [])
+            if night_list:
+                st.markdown("<div style='font-size:0.82rem; margin-top:8px; line-height:1.45; border-top:1px dashed rgba(128,128,128,0.25); padding-top:6px;'><b>🏛️ Hall of Fame:</b></div>", unsafe_allow_html=True)
+                for rank_idx, r in enumerate(night_list):
+                    medal = ["🥇", "🥈", "🥉"][rank_idx] if rank_idx < 3 else "&bull;"
+                    em = prefs.get(r["user"], {}).get("emoji", "🦉")
+                    st.markdown(f"{medal} **{em} {r['user']}**: **{r['count']} logs** *({r['pct']}%)*")
 
     with r3c3:
         with st.container(border=True):
@@ -244,6 +285,14 @@ with tab1:
             else:
                 st.write("No early bird activity.")
             st.caption("☀️ *First to brew in the morning.*")
+            
+            early_list = all_hof.get("early_bird", [])
+            if early_list:
+                st.markdown("<div style='font-size:0.82rem; margin-top:8px; line-height:1.45; border-top:1px dashed rgba(128,128,128,0.25); padding-top:6px;'><b>🏛️ Hall of Fame:</b></div>", unsafe_allow_html=True)
+                for rank_idx, r in enumerate(early_list):
+                    medal = ["🥇", "🥈", "🥉"][rank_idx] if rank_idx < 3 else "&bull;"
+                    em = prefs.get(r["user"], {}).get("emoji", "☀️")
+                    st.markdown(f"{medal} **{em} {r['user']}**: **{r['count']} logs** *({r['pct']}%)*")
 
     # Row 4
     r4c1, r4c2, r4c3 = st.columns(3)
@@ -257,6 +306,14 @@ with tab1:
             else:
                 st.write("No midnight logs.")
             st.caption("🕯️ *Timestamp record for latest log.*")
+            
+            mid_list = all_hof.get("midnight_oil", [])
+            if mid_list:
+                st.markdown("<div style='font-size:0.82rem; margin-top:8px; line-height:1.45; border-top:1px dashed rgba(128,128,128,0.25); padding-top:6px;'><b>🏛️ Hall of Fame:</b></div>", unsafe_allow_html=True)
+                for rank_idx, r in enumerate(mid_list):
+                    medal = ["🥇", "🥈", "🥉"][rank_idx] if rank_idx < 3 else "&bull;"
+                    em = prefs.get(r["user"], {}).get("emoji", "🕯️")
+                    st.markdown(f"{medal} **{em} {r['user']}**: **{r['latest_time']}**")
 
     with r4c2:
         with st.container(border=True):
@@ -266,16 +323,32 @@ with tab1:
             else:
                 st.write("No marathon drinkers yet.")
             st.caption("⏳ *Longest average interval between drinks.*")
+            
+            mar_list = all_hof.get("marathon_drinker", [])
+            if mar_list:
+                st.markdown("<div style='font-size:0.82rem; margin-top:8px; line-height:1.45; border-top:1px dashed rgba(128,128,128,0.25); padding-top:6px;'><b>🏛️ Hall of Fame:</b></div>", unsafe_allow_html=True)
+                for rank_idx, r in enumerate(mar_list):
+                    medal = ["🥇", "🥈", "🥉"][rank_idx] if rank_idx < 3 else "&bull;"
+                    em = prefs.get(r["user"], {}).get("emoji", "🐢")
+                    st.markdown(f"{medal} **{em} {r['user']}**: **{r['avg_hours']}h** avg gap")
 
     with r4c3:
         with st.container(border=True):
             st.markdown("### ⚖️ Equilibrium Monarch")
             if funny.get("balanced"):
                 u_em = prefs.get(funny["balanced"], {}).get("emoji", "⚖️")
-                st.info(f"**{u_em} {funny['balanced']}** maintains the closest to a 50/50 balance of Coffee and Tea.")
+                st.info(f"**{u_em} {funny['balanced']}** maintains the closest to 50/50 Coffee & Tea.")
             else:
                 st.write("No balanced drinkers yet.")
             st.caption("☯️ *Harmony between coffee and tea.*")
+            
+            eq_list = all_hof.get("equilibrium_monarch", [])
+            if eq_list:
+                st.markdown("<div style='font-size:0.82rem; margin-top:8px; line-height:1.45; border-top:1px dashed rgba(128,128,128,0.25); padding-top:6px;'><b>🏛️ Hall of Fame:</b></div>", unsafe_allow_html=True)
+                for rank_idx, r in enumerate(eq_list):
+                    medal = ["🥇", "🥈", "🥉"][rank_idx] if rank_idx < 3 else "&bull;"
+                    em = prefs.get(r["user"], {}).get("emoji", "⚖️")
+                    st.markdown(f"{medal} **{em} {r['user']}**: **{r['c_pct']}% C / {r['t_pct']}% T**")
 
 
 # =========================================================================
