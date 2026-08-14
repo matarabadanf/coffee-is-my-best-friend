@@ -60,9 +60,6 @@ user_style = prefs.get(selected_user, {}).get("ui_style", "Modern Flat")
 # Inject Active Theme & CSS (with surprise sidebar concealment for non-devs)
 inject_custom_css(user_theme, user_style, user=selected_user)
 
-# Check and trigger celebration dialog popup if there are pending unlocks
-trigger_celebration_popup_if_pending(selected_user)
-
 trophies = get_gamification_metrics(df_coffee, df_tea, users)
 coin_balances = get_coin_balances(df, transactions, users)
 active_perks = get_active_perks(transactions, users)
@@ -423,7 +420,6 @@ feed_col, nav_col = st.columns([3, 2])
 with feed_col:
     with st.container(border=True):
         st.markdown("#### 📡 Real-time Activity Feed")
-        
         # Pull recent activity directly from clicks table (df)
         if not df.empty:
             recent_clicks = df.sort_values(by="created_at", ascending=False).head(5)
