@@ -195,20 +195,26 @@ def handle_drink_log(drink_id, drink_name, temp_name, country_code, city_name):
         # 0. Capture Before Snapshot for celebration detection
         before_snapshot = get_user_achievement_snapshot(selected_user, df_coffee, df_tea, transactions, users)
 
-        # 1. Insert Click Record with location columns (1: Hot Coffee, 3: Iced Coffee, 2: Hot Tea, 4: Iced Tea)
-        insert_click(selected_user, 1, drink_id, country=country_code, city=city_name)
-        # 2. Insert Coin Transaction with explicit temperature, country, and city metadata
+        # 1. Insert Click Record (location is strictly null before Drop 1 unlocks)
+        log_country = country_code if is_unlocked("world_update") else None
+        log_city = city_name if is_unlocked("world_update") else None
+        insert_click(selected_user, 1, drink_id, country=log_country, city=log_city)
+        
+        # 2. Insert Coin Transaction with explicit temperature metadata
+        tx_meta = {
+            "drink": drink_name.lower(), 
+            "temperature": temp_name.lower(), 
+            "drink_id": drink_id,
+        }
+        if is_unlocked("world_update") and country_code:
+            tx_meta["country"] = country_code
+            tx_meta["city"] = city_name
+            
         insert_transaction(
             selected_user, 
             10, 
             "drink_log", 
-            {
-                "drink": drink_name.lower(), 
-                "temperature": temp_name.lower(), 
-                "drink_id": drink_id,
-                "country": country_code,
-                "city": city_name
-            }
+            tx_meta
         )
 
         # 3. Capture After Snapshot & Detect Unlocks
