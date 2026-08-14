@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from datetime import datetime
 import time
@@ -90,38 +91,142 @@ render_daily_fact_quote()
 now = get_current_madrid_time() if df.empty else get_current_madrid_time()
 unlock_time = pd.Timestamp("2026-08-15 00:00:00", tz="Europe/Madrid")
 
-# --- 🚀 BIG HYPE COUNTDOWN CLOCK TO TONIGHT AT 00:00 ---
+# --- 🚀 BIG HYPE COUNTDOWN CLOCK TO TONIGHT AT 00:00 (LIVE CLIENT-SIDE TICKING) ---
 if now < unlock_time:
-    delta = unlock_time - now
-    total_secs = max(0, int(delta.total_seconds()))
-    h = total_secs // 3600
-    m = (total_secs % 3600) // 60
-    s = total_secs % 60
-    
-    st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%); padding: 26px 20px; border-radius: 18px; color: white; text-align: center; box-shadow: 0 10px 30px rgba(49, 46, 129, 0.35); margin-bottom: 22px; border: 1px solid rgba(165, 180, 252, 0.3);">
-        <div style="font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 2.5px; color: #a5b4fc; margin-bottom: 6px;">🚀 MAJOR UPDATE INCOMING &bull; DROP 1</div>
-        <div style="font-size: 26px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 6px;">🌍 World Explorer & UI 2.0 Drops Tonight at Midnight! ✨</div>
-        <div style="font-size: 14px; color: #e0e7ff; margin-bottom: 18px;">Get HYPED! Stamped city passports, dynamic travel maps, 13 achievement tracks, and dynasty Hall of Fame arrive in:</div>
-        <div style="display: flex; justify-content: center; align-items: center; gap: 14px; margin: 12px 0 16px 0;">
-            <div style="background: rgba(255,255,255,0.12); backdrop-filter: blur(10px); padding: 14px 22px; border-radius: 14px; min-width: 90px; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                <div style="font-size: 38px; font-weight: 900; line-height: 1; font-family: 'Courier New', monospace; color: #fde047; text-shadow: 0 0 15px rgba(253, 224, 71, 0.5);">{h:02d}</div>
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #c7d2fe; margin-top: 6px;">Hours</div>
+    countdown_html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="utf-8">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { background: transparent; overflow: hidden; }
+        .countdown-card {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);
+            padding: 22px 18px;
+            border-radius: 18px;
+            color: white;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(49, 46, 129, 0.35);
+            border: 1px solid rgba(165, 180, 252, 0.3);
+        }
+        .tagline {
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2.2px;
+            color: #a5b4fc;
+            margin-bottom: 4px;
+        }
+        .headline {
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+        .subtext {
+            font-size: 13px;
+            color: #e0e7ff;
+            margin-bottom: 14px;
+        }
+        .timer-grid {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin: 8px 0 12px 0;
+        }
+        .timer-box {
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(10px);
+            padding: 10px 18px;
+            border-radius: 12px;
+            min-width: 80px;
+            border: 1px solid rgba(255,255,255,0.18);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .timer-val {
+            font-size: 34px;
+            font-weight: 900;
+            line-height: 1;
+            font-family: 'Courier New', monospace;
+            color: #fde047;
+            text-shadow: 0 0 15px rgba(253, 224, 71, 0.5);
+        }
+        .timer-lbl {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #c7d2fe;
+            margin-top: 4px;
+        }
+        .timer-colon {
+            font-size: 28px;
+            font-weight: 900;
+            color: #a5b4fc;
+            margin-top: -10px;
+        }
+        .footer-note {
+            font-size: 12px;
+            color: #c7d2fe;
+        }
+    </style>
+    </head>
+    <body>
+    <div class="countdown-card">
+        <div class="tagline">🚀 MAJOR UPDATE INCOMING &bull; DROP 1</div>
+        <div class="headline">🌍 World Explorer & UI 2.0 Drops Tonight at Midnight! ✨</div>
+        <div class="subtext">Get HYPED! Stamped city passports, dynamic travel maps, 13 achievement tracks, and dynasty Hall of Fame arrive in:</div>
+        <div class="timer-grid">
+            <div class="timer-box">
+                <div id="h-val" class="timer-val">00</div>
+                <div class="timer-lbl">Hours</div>
             </div>
-            <div style="font-size: 34px; font-weight: 900; color: #a5b4fc; margin-top: -14px;">:</div>
-            <div style="background: rgba(255,255,255,0.12); backdrop-filter: blur(10px); padding: 14px 22px; border-radius: 14px; min-width: 90px; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                <div style="font-size: 38px; font-weight: 900; line-height: 1; font-family: 'Courier New', monospace; color: #fde047; text-shadow: 0 0 15px rgba(253, 224, 71, 0.5);">{m:02d}</div>
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #c7d2fe; margin-top: 6px;">Minutes</div>
+            <div class="timer-colon">:</div>
+            <div class="timer-box">
+                <div id="m-val" class="timer-val">00</div>
+                <div class="timer-lbl">Minutes</div>
             </div>
-            <div style="font-size: 34px; font-weight: 900; color: #a5b4fc; margin-top: -14px;">:</div>
-            <div style="background: rgba(255,255,255,0.12); backdrop-filter: blur(10px); padding: 14px 22px; border-radius: 14px; min-width: 90px; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                <div style="font-size: 38px; font-weight: 900; line-height: 1; font-family: 'Courier New', monospace; color: #fde047; text-shadow: 0 0 15px rgba(253, 224, 71, 0.5);">{s:02d}</div>
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #c7d2fe; margin-top: 6px;">Seconds</div>
+            <div class="timer-colon">:</div>
+            <div class="timer-box">
+                <div id="s-val" class="timer-val">00</div>
+                <div class="timer-lbl">Seconds</div>
             </div>
         </div>
-        <div style="font-size: 13px; color: #c7d2fe;">⏰ Launch Target: <b>Tonight at 00:00:00 CEST (Aug 15, Madrid Time)</b></div>
+        <div class="footer-note">⏰ Launch Target: <b>Tonight at 00:00:00 CEST (Aug 15, Madrid Time)</b></div>
     </div>
-    """, unsafe_allow_html=True)
+
+    <script>
+    const target = new Date("2026-08-15T00:00:00+02:00").getTime();
+    function tick() {
+        const now = new Date().getTime();
+        const diff = target - now;
+        if (diff <= 0) {
+            document.getElementById("h-val").innerText = "00";
+            document.getElementById("m-val").innerText = "00";
+            document.getElementById("s-val").innerText = "00";
+            setTimeout(function() {
+                try { window.parent.location.reload(); } catch(e) { window.location.reload(); }
+            }, 1000);
+            return;
+        }
+        const sec = Math.floor(diff / 1000);
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        const s = sec % 60;
+
+        document.getElementById("h-val").innerText = String(h).padStart(2, '0');
+        document.getElementById("m-val").innerText = String(m).padStart(2, '0');
+        document.getElementById("s-val").innerText = String(s).padStart(2, '0');
+    }
+    tick();
+    setInterval(tick, 1000);
+    </script>
+    </body>
+    </html>
+    """
+    components.html(countdown_html, height=225)
 
 # --- 📜 COMPREHENSIVE DROP 1 & UI 2.0 PATCH NOTES ---
 patch_expander_title = "🌍 **Drop 1 Patch Notes — World Explorer & UI 2.0 Major Update (Preview Details)**" if now < unlock_time else "🎉 **Drop 1 Patch Notes — World Explorer & UI 2.0 is LIVE! (Tap to expand)**"
