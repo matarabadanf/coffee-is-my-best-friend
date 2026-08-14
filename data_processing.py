@@ -936,7 +936,181 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None):
 
         trophies["secret_feats"][user] = user_secrets
 
+    trophies["monarch_hall_of_fame"] = compute_monarch_hall_of_fame(df_coffee, df_tea, users, transactions=transactions)
+
     return trophies
+
+def compute_monarch_hall_of_fame(df_coffee, df_tea, users, transactions=None):
+    """
+    Computes complete dynasty lineage and Hall of Fame for the 4 global monarch thrones:
+    - Lists all users who have ever held each throne
+    - Highlights current reigning monarchs
+    - Displays last held dates and peak stats for all historical title holders
+    """
+    combined = pd.concat([df_coffee, df_tea]) if not df_coffee.empty or not df_tea.empty else pd.DataFrame()
+    
+    # 1. Caffeine Emperor (Weekly Coffee Monarch)
+    caffeine_hof = []
+    if not df_coffee.empty:
+        df_c = df_coffee.copy()
+        df_c["week_str"] = df_c["created_at"].dt.strftime("%Y-W%W")
+        weekly_groups = df_c.groupby(["week_str", "user_name"])["value"].sum().unstack(fill_value=0)
+        
+        user_weekly_wins = {u: 0 for u in users}
+        user_last_reign_date = {u: None for u in users}
+        user_peak_weekly = {u: 0 for u in users}
+        
+        for w_str, row in weekly_groups.iterrows():
+            top_user = row.idxmax()
+            top_val = row.max()
+            if top_val > 0:
+                user_weekly_wins[top_user] += 1
+                w_logs = df_c[(df_c["week_str"] == w_str) & (df_c["user_name"] == top_user)]
+                if not w_logs.empty:
+                    user_last_reign_date[top_user] = w_logs["created_at"].max()
+            for u in users:
+                user_peak_weekly[u] = max(user_peak_weekly[u], int(row.get(u, 0)))
+                
+        seven_days_ago = pd.Timestamp.now(tz=df_c["created_at"].dt.tz) - pd.Timedelta(days=7)
+        recent_c = df_c[df_c["created_at"] >= seven_days_ago]
+        cur_caff_holder = recent_c.groupby("user_name")["value"].sum().idxmax() if not recent_c.empty else None
+
+        for u in users:
+            if user_weekly_wins[u] > 0 or user_peak_weekly[u] > 0:
+                is_cur = (u == cur_caff_holder)
+                last_dt = user_last_reign_date[u]
+                last_held_str = "👑 Currently Reigning" if is_cur else (
+                    last_dt.strftime("%b %d, %Y") if pd.notnull(last_dt) else "Historical Record"
+                )
+                caffeine_hof.append({
+                    "user": u,
+                    "is_current": is_cur,
+                    "weeks_won": user_weekly_wins[u],
+                    "peak_weekly_coffees": user_peak_weekly[u],
+                    "last_held": last_held_str,
+                    "last_held_dt": last_dt
+                })
+        caffeine_hof.sort(key=lambda x: (x["is_current"], x["weeks_won"]), reverse=True)
+
+    # 2. Tea Dynasty Sovereign (Tea Purist)
+    tea_hof = []
+    if not combined.empty:
+        cur_tea_holder = None
+        best_ratio = -1
+        for u in users:
+            c_cnt = len(df_coffee[df_coffee["user_name"] == u]) if not df_coffee.empty else 0
+            t_cnt = len(df_tea[df_tea["user_name"] == u]) if not df_tea.empty else 0
+            if t_cnt > 0:
+                r = t_cnt / (c_cnt + 1)
+                if r > best_ratio:
+                    best_ratio = r
+                    cur_tea_holder = u
+
+        for u in users:
+            t_logs = df_tea[df_tea["user_name"] == u] if not df_tea.empty else pd.DataFrame()
+            t_count = len(t_logs)
+            if t_count > 0:
+                is_cur = (u == cur_tea_holder)
+                last_dt = t_logs["created_at"].max()
+                last_held_str = "👑 Currently Reigning" if is_cur else last_dt.strftime("%b %d, %Y")
+                c_cnt = len(df_coffee[df_coffee["user_name"] == u]) if not df_coffee.empty else 0
+                ratio = round(t_count / (c_cnt + 1), 2)
+                tea_hof.append({
+                    "user": u,
+                    "is_current": is_cur,
+                    "tea_count": t_count,
+                    "tea_ratio": ratio,
+                    "last_held": last_held_str,
+                    "last_held_dt": last_dt
+                })
+        tea_hof.sort(key=lambda x: (x["is_current"], x["tea_ratio"]), reverse=True)
+
+    # 3. Sub-Zero Monarch (Iced Beverage Master)
+    ice_hof = []
+    if not combined.empty and "drink_id" in combined.columns:
+        iced_logs = combined[combined["drink_id"].isin([3, 4])]
+        if not iced_logs.empty:
+            ice_counts = iced_logs.groupby("user_name")["value"].sum().to_dict()
+            top_ice_user = max(ice_counts, key=ice_counts.get) if ice_counts else None
+            for u in users:
+                u_ice_logs = iced_logs[iced_logs["user_name"] == u]
+                if not u_ice_logs.empty:
+                    cnt = int(ice_counts.get(u, 0))
+                    is_cur = (u == top_ice_user)
+                    last_dt = u_ice_logs["created_at"].max()
+                    last_held_str = "👑 Currently Reigning" if is_cur else last_dt.strftime("%b %d, %Y")
+                    ice_hof.append({
+                        "user": u,
+                        "is_current": is_cur,
+                        "iced_count": cnt,
+                        "last_held": last_held_str,
+                        "last_held_dt": last_dt
+                    })
+            ice_hof.sort(key=lambda x: (x["is_current"], x["iced_count"]), reverse=True)
+
+    # 4. Combustion Monarch (Warp Speed / 400+ mg Days)
+    combustion_hof = []
+    if not combined.empty:
+        caff_map = {1: 95, 3: 95, 2: 35, 4: 35}
+        comb_copy = combined.copy()
+        comb_copy["caff_mg"] = comb_copy["drink_id"].map(caff_map).fillna(50)
+        if comb_copy["created_at"].dt.tz is None:
+            comb_copy["created_at"] = comb_copy["created_at"].dt.tz_localize("UTC")
+        comb_copy["madrid_dt"] = comb_copy["created_at"].dt.tz_convert("Europe/Madrid")
+        comb_copy["date"] = comb_copy["madrid_dt"].dt.date
+        
+        daily_caff = comb_copy.groupby(["user_name", "date"])["caff_mg"].sum().reset_index()
+        on_fire_days = daily_caff[daily_caff["caff_mg"] >= 400]
+        
+        top_fire_user = None
+        if not on_fire_days.empty:
+            fire_counts = on_fire_days.groupby("user_name")["date"].count().to_dict()
+            top_fire_user = max(fire_counts, key=fire_counts.get) if fire_counts else None
+        else:
+            fire_counts = {}
+
+        for u in users:
+            u_fire = on_fire_days[on_fire_days["user_name"] == u]
+            cnt = int(fire_counts.get(u, 0))
+            if cnt > 0:
+                is_cur = (u == top_fire_user)
+                last_d = u_fire["date"].max()
+                last_held_str = "👑 Currently Reigning" if is_cur else pd.to_datetime(last_d).strftime("%b %d, %Y")
+                combustion_hof.append({
+                    "user": u,
+                    "is_current": is_cur,
+                    "fire_days": cnt,
+                    "last_held": last_held_str,
+                    "last_held_dt": pd.to_datetime(last_d)
+                })
+        combustion_hof.sort(key=lambda x: (x["is_current"], x["fire_days"]), reverse=True)
+
+    return {
+        "caffeine_emperor": {
+            "title": "👑 Caffeine Emperor",
+            "subtitle": "Weekly Caffeine Champion",
+            "metric_label": "Weeks Crowned",
+            "hall_of_fame": caffeine_hof
+        },
+        "tea_sovereign": {
+            "title": "🍵 Tea Dynasty Sovereign",
+            "subtitle": "Highest Tea Ratio Dedication",
+            "metric_label": "Tea Ratio",
+            "hall_of_fame": tea_hof
+        },
+        "ice_monarch": {
+            "title": "🧊 Sub-Zero Monarch",
+            "subtitle": "Master of Cold Brews & Iced Teas",
+            "metric_label": "Iced Drinks",
+            "hall_of_fame": ice_hof
+        },
+        "combustion_monarch": {
+            "title": "🔥 Combustion Monarch",
+            "subtitle": "Warp Speed Overclock (400+ mg Days)",
+            "metric_label": "On-Fire Days",
+            "hall_of_fame": combustion_hof
+        }
+    }
 
 import random
 

@@ -81,14 +81,17 @@ with tab1:
                 
     st.divider()
     
+    hof_data = trophies.get("monarch_hall_of_fame", {})
+    
     # Monarch Record Cards Grid
-    st.markdown("#### 🌟 Hall of Fame Titles")
+    st.markdown("#### 🌟 The 4 Supreme Monarch Thrones")
+    st.caption("Weekly & all-time supreme titles. Earning a throne grants `+250 🪙` (rate-limited to once per calendar week).")
     
     # Row 1 (Core Beverage Monarchs)
     r1c1, r1c2, r1c3, r1c4 = st.columns(4)
     with r1c1:
         with st.container(border=True):
-            st.markdown("### 👑 Caffeine Monarch")
+            st.markdown("### 👑 Caffeine Emperor")
             addict = trophies.get("caffeine_addict")
             if addict:
                 u_em = prefs.get(addict, {}).get("emoji", "☕")
@@ -96,17 +99,39 @@ with tab1:
             else:
                 st.info("No coffee logged in the past 7 days.")
             st.caption("🏆 *Weekly Caffeine Champion*")
+            
+            caff_hof = hof_data.get("caffeine_emperor", {}).get("hall_of_fame", [])
+            if caff_hof:
+                with st.expander("🏛️ Throne Lineage & Hall of Fame", expanded=False):
+                    for entry in caff_hof:
+                        u = entry["user"]
+                        em = prefs.get(u, {}).get("emoji", "☕")
+                        if entry["is_current"]:
+                            st.markdown(f"👑 **{em} {u}** &bull; `Reigning` ({entry['weeks_won']}w won)")
+                        else:
+                            st.markdown(f"📜 **{em} {u}** &bull; Last: *{entry['last_held']}* ({entry['weeks_won']}w won)")
 
     with r1c2:
         with st.container(border=True):
-            st.markdown("### 🍵 Tea Monarch")
+            st.markdown("### 🍵 Tea Sovereign")
             purist = trophies.get("tea_purist")
             if purist:
                 u_em = prefs.get(purist, {}).get("emoji", "🍵")
-                st.success(f"**{u_em} {purist}** holds the highest Tea-to-Coffee ratio across all logs.")
+                st.success(f"**{u_em} {purist}** holds the highest Tea dedication ratio across all logs.")
             else:
                 st.info("No tea data found.")
             st.caption("🌿 *Supreme Tea Dedication*")
+            
+            tea_hof = hof_data.get("tea_sovereign", {}).get("hall_of_fame", [])
+            if tea_hof:
+                with st.expander("🏛️ Throne Lineage & Hall of Fame", expanded=False):
+                    for entry in tea_hof:
+                        u = entry["user"]
+                        em = prefs.get(u, {}).get("emoji", "🍵")
+                        if entry["is_current"]:
+                            st.markdown(f"👑 **{em} {u}** &bull; `Reigning` ({entry['tea_count']} teas, {entry['tea_ratio']}x)")
+                        else:
+                            st.markdown(f"📜 **{em} {u}** &bull; Last: *{entry['last_held']}* ({entry['tea_count']} teas)")
 
     with r1c3:
         with st.container(border=True):
@@ -118,6 +143,17 @@ with tab1:
             else:
                 st.info("No iced drinks logged yet.")
             st.caption("❄️ *Iced Beverage Master*")
+            
+            ice_hof = hof_data.get("ice_monarch", {}).get("hall_of_fame", [])
+            if ice_hof:
+                with st.expander("🏛️ Throne Lineage & Hall of Fame", expanded=False):
+                    for entry in ice_hof:
+                        u = entry["user"]
+                        em = prefs.get(u, {}).get("emoji", "🧊")
+                        if entry["is_current"]:
+                            st.markdown(f"👑 **{em} {u}** &bull; `Reigning` ({entry['iced_count']} iced)")
+                        else:
+                            st.markdown(f"📜 **{em} {u}** &bull; Last: *{entry['last_held']}* ({entry['iced_count']} iced)")
 
     with r1c4:
         with st.container(border=True):
@@ -129,8 +165,19 @@ with tab1:
             else:
                 st.info("No On-Fire days recorded yet.")
             st.caption("🌋 *Most All-Time Days Over 400mg*")
+            
+            comb_hof = hof_data.get("combustion_monarch", {}).get("hall_of_fame", [])
+            if comb_hof:
+                with st.expander("🏛️ Throne Lineage & Hall of Fame", expanded=False):
+                    for entry in comb_hof:
+                        u = entry["user"]
+                        em = prefs.get(u, {}).get("emoji", "🔥")
+                        if entry["is_current"]:
+                            st.markdown(f"👑 **{em} {u}** &bull; `Reigning` ({entry['fire_days']} days)")
+                        else:
+                            st.markdown(f"📜 **{em} {u}** &bull; Last: *{entry['last_held']}* ({entry['fire_days']} days)")
 
-    # Row 2
+    # Row 2 (Milestone Records)
     r2c1, r2c2, r2c3 = st.columns(3)
     with r2c1:
         with st.container(border=True):
