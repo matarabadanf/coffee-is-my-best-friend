@@ -381,11 +381,17 @@ feed_col, nav_col = st.columns([3, 2])
 with feed_col:
     with st.container(border=True):
         st.markdown("#### 📡 Real-time Activity Feed")
-        if not df.empty:
-            recent = df.sort_values(by="created_at", ascending=False).head(5)
-            for _, row in recent.iterrows():
-                u = row["user_name"]
-                did = row.get("drink_id", 1)
+        
+        # Pull recent activity from drink transactions (contains location metadata & temperature)
+        recent_txs = [t for t in (transactions or []) if t.get("transaction_type") == "drink_log"]
+        
+        if recent_txs:
+            # Sort by created_at descending
+            recent_sorted = sorted(recent_txs, key=lambda x: str(x.get("created_at", "")), reverse=True)[:5]
+            for tx in recent_sorted:
+                u = tx.get("user_name")
+                meta = tx.get("metadata", {}) if isinstance(tx.get("metadata"), dict) else {}
+                did = meta.get("drink_id", 1)
                 
                 if did == 1:
                     d = "Hot Coffee ☕"
@@ -396,9 +402,19 @@ with feed_col:
                 elif did == 4:
                     d = "Iced Tea 🧊🍵"
                 else:
-                    d = "Beverage ☕"
+                    d = f"{meta.get('temperature', '').title()} {meta.get('drink', 'Beverage').title()} ☕"
                     
-                t = row["created_at"]
+                # Privacy Setting Check for User: share_live_location
+                user_share_loc = prefs.get(u, {}).get("share_live_location", False)
+                loc_html = ""
+                if user_share_loc and meta.get("country"):
+                    c_code = meta.get("country")
+                    c_city = meta.get("city") or get_cities_for_country(c_code)[0]
+                    c_info = TRAVEL_COUNTRIES.get(c_code, {})
+                    c_name = c_info.get("name", c_code)
+                    loc_html = f" in **{c_city}, {c_name}** {get_flag_img_html(c_code, 16, 12)}"
+                
+                t = pd.to_datetime(tx.get("created_at"))
                 diff = now - t
                 mins = int(diff.total_seconds() / 60)
                 if mins < 1:
@@ -410,6 +426,17 @@ with feed_col:
                 else:
                     time_str = t.strftime("%b %d, %H:%M")
                 
+                st.markdown(f"- **{u}** enjoyed a **{d}**{loc_html} &bull; *{time_str}*", unsafe_allow_html=True)
+        elif not df.empty:
+            recent = df.sort_values(by="created_at", ascending=False).head(5)
+            for _, row in recent.iterrows():
+                u = row["user_name"]
+                did = row.get("drink_id", 1)
+                d = "Hot Coffee ☕" if did == 1 else ("Iced Coffee 🧊☕" if did == 3 else ("Hot Tea 🍵" if did == 2 else "Iced Tea 🧊🍵"))
+                t = row["created_at"]
+                diff = now - t
+                mins = int(diff.total_seconds() / 60)
+                time_str = "Just now" if mins < 1 else (f"{mins}m ago" if mins < 60 else (f"{mins // 60}h ago" if mins < 1440 else t.strftime("%b %d, %H:%M")))
                 st.markdown(f"- **{u}** enjoyed a **{d}** &bull; *{time_str}*")
         else:
             st.write("No activity recorded yet.")

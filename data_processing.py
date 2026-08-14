@@ -1105,7 +1105,8 @@ def get_user_preferences(transactions, users):
             "title": None, 
             "ui_style": "Modern Flat", 
             "default_country": get_user_default_country(u),
-            "default_city": get_user_default_city(u)
+            "default_city": get_user_default_city(u),
+            "share_live_location": False
         } for u in users
     }
     
@@ -1143,5 +1144,7 @@ def get_user_preferences(transactions, users):
                 prefs[u]["default_country"] = meta["default_country"]
             if "default_city" in meta:
                 prefs[u]["default_city"] = meta["default_city"]
+            if "share_live_location" in meta:
+                prefs[u]["share_live_location"] = bool(meta["share_live_location"])
                 
     return prefs

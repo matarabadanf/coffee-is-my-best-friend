@@ -121,9 +121,9 @@ st.subheader("🗺️ Interactive Travel Map")
 st.markdown("""
 <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
     <span style="font-weight: 600; font-size: 13px;">Explorer Pin Colors:</span>
-    <span style="background-color: #0284C7; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">🟦 Cris (Sky Blue)</span>
-    <span style="background-color: #F43F5E; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">🟥 Bea (Coral)</span>
-    <span style="background-color: #663399; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">🟪 Fer (Rebecca Purple)</span>
+    <span style="background-color: #0284C7; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">🟦 Cris</span>
+    <span style="background-color: #F43F5E; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">🟥 Bea</span>
+    <span style="background-color: #663399; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">🟪 Fer</span>
 </div>
 """, unsafe_allow_html=True)
 

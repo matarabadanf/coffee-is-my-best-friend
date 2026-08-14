@@ -189,12 +189,24 @@ with st.container(border=True):
             
     new_city_name = normalize_city_name(new_city_name)
     
-    if st.button("💾 Save Home Location", use_container_width=True):
+    st.divider()
+    st.markdown("#### 🔒 Location Privacy")
+    st.caption("Control whether your physical city and country are broadcasted in the real-time activity feed.")
+    
+    current_share_loc = prefs.get(selected_user, {}).get("share_live_location", False)
+    share_loc_toggle = st.toggle(
+        "📡 Broadcast location in real-time activity feed",
+        value=current_share_loc,
+        help="When enabled, your live drink logs in the feed will show your city and flag. When disabled, your location is kept private from the live feed (your drinks are still plotted on the World Explorer map)."
+    )
+    
+    if st.button("💾 Save Location & Privacy Settings", use_container_width=True):
         insert_transaction(selected_user, 0, "preference", {
             "default_country": new_country_code,
-            "default_city": new_city_name
+            "default_city": new_city_name,
+            "share_live_location": share_loc_toggle
         })
-        st.success(f"Home base location updated to {new_city_name}, {selected_country_option}! Refreshing...")
+        st.success(f"Location & privacy settings saved for {selected_user}! Refreshing...")
         st.rerun()
 
 st.header("🎒 Active Inventory & Perks")
