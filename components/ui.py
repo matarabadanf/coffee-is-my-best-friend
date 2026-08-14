@@ -382,8 +382,25 @@ def inject_custom_css(theme="Latte (Light)", ui_style="Modern Flat", user=None):
     }}
 
     /* Global Typography & Font Family with Full Country Flag Support on Windows */
-    html, body, [class*="css"], .stSelectbox, .stSelectbox *, div[data-baseweb="select"], div[data-baseweb="select"] *, div[data-testid="stSelectbox"] *, select, option, input, button, p, span, h1, h2, h3, h4, h5, h6 {{
+    html, body, .stApp, p, h1, h2, h3, h4, h5, h6, input, label, select, option {{
         font-family: 'Plus Jakarta Sans', 'Twemoji Country Flags', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif !important;
+    }}
+
+    /* Preserve Streamlit Material Icons font ligatures (prevent raw ligature text like 'arrow_drop_down') */
+    [data-testid="stIconMaterial"],
+    [data-testid="stExpanderToggleIcon"],
+    .material-symbols-rounded,
+    .material-symbols-outlined,
+    .material-icons,
+    [class*="material-symbols"],
+    [class*="material-icons"],
+    details summary span[translate="no"],
+    details summary [data-testid="stIconMaterial"],
+    div[data-testid="stExpander"] details summary span:first-child {{
+        font-family: "Material Symbols Rounded", "Material Icons", "Material Symbols Outlined", sans-serif !important;
+        font-feature-settings: "liga" 1 !important;
+        -webkit-font-feature-settings: "liga" 1 !important;
+        text-rendering: optimizeLegibility !important;
     }}
 
     /* Hide Streamlit default top branding decorations */
