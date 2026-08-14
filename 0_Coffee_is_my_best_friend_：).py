@@ -88,30 +88,32 @@ render_daily_fact_quote()
 # --- Time Context (with simulation support) ---
 now = get_current_madrid_time() if df.empty else get_current_madrid_time()
 
-# --- Drop 1 World Update Patch Notes Banner (Active for 7 days upon release or in Dev Preview) ---
+# --- Drop 1 World Update & UI 2.0 Patch Notes Banner (Active for 7 days upon release or in Dev Preview) ---
 if is_patch_notes_active("world_update", dev_bypass=is_dev_mode(selected_user)):
-    with st.expander("🌍 **Drop 1 Patch Notes — World Update & City Passport is LIVE! (Tap to expand)**", expanded=True):
+    with st.expander("🌍 **Drop 1 Patch Notes — World Explorer & UI 2.0 Major Update is LIVE! (Tap to expand)**", expanded=True):
         pn1, pn2, pn3 = st.columns(3)
         with pn1:
             st.markdown("""
-            #### 📍 **City & Country Travel Logging**
-            - ✈️ **Real-time Travel Tracker**: Log drinks with exact **Country & City** directly from the beverage bar!
-            - 🏠 **Personalized Home Bases**: Configured per explorer (**Bea**: 🇳🇱 Amsterdam, **Fer**: 🇫🇷 Paris, **Cris**: 🇨🇿 Prague). Update anytime in [⚙️ Settings](pages/99_⚙️_Settings.py)!
-            - 🌐 **Global City Registry**: 196+ countries with curated popular cities and custom write-in support.
+            #### 🌍 **World Explorer & Passport**
+            - ✈️ **Real-Time Travel Logging**: Log beverages with exact **Country & City** directly from the beverage bar!
+            - 🏠 **Personalized Home Bases**: Configured per explorer (**Bea**: 🇳🇱 Amsterdam, **Fer**: 🇫🇷 Paris, **Cris**: 🇨🇿 Prague) with dynamic geocoding.
+            - 🗺️ **Interactive Travel Map**: Open [🌍 World Explorer](pages/4_🌍_World_Explorer.py) to view city markers, multi-crew explorer filters, and beverage views.
+            - 🔒 **Location Privacy Controls**: Instant toggle in [⚙️ Settings](pages/99_⚙️_Settings.py) to control whether your live feed broadcasts your city/country.
             """)
         with pn2:
             st.markdown("""
-            #### 🗺️ **World Explorer & City Pins**
-            - 🧭 **Interactive Pinned Map**: Open [🌍 World Explorer](pages/4_🌍_World_Explorer.py) to view exact city markers across the globe.
-            - 🛂 **Passport Analytics**: Live tracking of countries visited, cities explored, continents reached, and world diversity score.
-            - 📬 **City Stamp Gallery**: Collect commemorative stamps for every urban destination!
+            #### 🎨 **UI 2.0 & Dynamic Morphism**
+            - ✨ **Dynamic Morphism Engine**: Switch between **Modern Flat**, **Glassmorphism**, and **Neumorphism** styles!
+            - 🛍️ **Theme Boutique**: 8 handcrafted color palettes (*Latte, Espresso, Matcha, Caramel Macchiato, Strawberry Frappé, Taro Boba, Midnight Cyber Brew, Velvet Mocha*) in [🎨 Theme Boutique](pages/3_🎨_Theme_Shop.py).
+            - ⚡ **Synchronized Activity Feed**: Pure `clicks` source of truth updating instantly upon beverage logging or modifications.
             """)
         with pn3:
             st.markdown("""
-            #### 🏆 **Urban Mastery & Secret Feats**
-            - 🎖️ **Two Mastery Tracks**: *World Explorer* (5 tiers) & *Metropolis Explorer* (5 tiers from *Urban Roamer* to *Global Citizen*).
-            - 🕵️ **6 Secret Travel Feats**: Uncover *Continent Hopper*, *Jet Lagged*, *The Homebody*, *Capital Tour*, *Twin Cities*, and *Coffee Capital Pilgrim*!
-            - 📊 **Travel Analytics**: City, Country & Continent breakdowns on the [📈 Charts Page](pages/1_📈_Graphs!_Graphs!_Graphs!.py).
+            #### 🏆 **Achievements & Dynasty Hall of Fame**
+            - 🎖️ **13 Progressive Mastery Tracks**: Featuring *World Explorer*, *Metropolis Explorer*, *Espresso Mastery*, *Zen Tea Garden*, *Sub-Zero Frost*, *Streak Sovereign*, and more.
+            - ⬆️ **Tier Upgrade Celebrations**: Live modal alerts comparing previous vs newly unlocked tiers with 1-tap emoji badge equipping!
+            - 👑 **Dynasty Hall of Fame**: Direct in-place rankings on all 13 cards in [🏆 Trophy Room](pages/2_🏆_Trophy_Room.py) with lifetime +250 🪙 crown rewards.
+            - 🕵️ **Arcane Secret Feats**: Concealed easter eggs and cryptic riddles hidden in Tab 3!
             """)
 
 # --- Version 2.0 Launch Banner (Active Aug 14 - Aug 21, 2026, suppressed once Drop 1 is active) ---

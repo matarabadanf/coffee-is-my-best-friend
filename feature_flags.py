@@ -4,7 +4,7 @@ import streamlit as st
 
 FEATURE_DROPS = {
     "world_update": {
-        "date": "2026-09-01",
+        "date": "2026-08-14 15:10:00",
         "title": "🌍 World Update",
         "tagline": "Every cup has a story. Where were you?",
         "pages": ["4_🌍_World_Explorer", "World_Explorer", "4_"],
