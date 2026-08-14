@@ -328,9 +328,10 @@ feed_col, nav_col = st.columns([3, 2])
 with feed_col:
     with st.container(border=True):
         st.markdown("#### 📡 Real-time Activity Feed")
+        # Pull recent activity directly from clicks table (df)
         if not df.empty:
-            recent = df.sort_values(by="created_at", ascending=False).head(5)
-            for _, row in recent.iterrows():
+            recent_clicks = df.sort_values(by="created_at", ascending=False).head(5)
+            for _, row in recent_clicks.iterrows():
                 u = row["user_name"]
                 did = row.get("drink_id", 1)
                 
@@ -345,6 +346,26 @@ with feed_col:
                 else:
                     d = "Beverage ☕"
                     
+                # Extract location from row or JSON column
+                c_code = None
+                c_city = None
+                if "location" in row and isinstance(row["location"], dict):
+                    c_code = row["location"].get("country")
+                    c_city = row["location"].get("city")
+                if not c_code and "country" in row and pd.notna(row["country"]):
+                    c_code = row["country"]
+                if not c_city and "city" in row and pd.notna(row["city"]):
+                    c_city = row["city"]
+
+                # Privacy Setting Check for User: share_live_location (defaults to True)
+                user_share_loc = prefs.get(u, {}).get("share_live_location", True)
+                loc_html = ""
+                if user_share_loc and c_code:
+                    c_city_display = c_city or get_cities_for_country(c_code)[0]
+                    c_info = TRAVEL_COUNTRIES.get(c_code, {})
+                    c_name = c_info.get("name", c_code)
+                    loc_html = f" in **{c_city_display}, {c_name}** {get_flag_img_html(c_code, 16, 12)}"
+                
                 t = row["created_at"]
                 diff = now - t
                 mins = int(diff.total_seconds() / 60)
@@ -357,7 +378,7 @@ with feed_col:
                 else:
                     time_str = t.strftime("%b %d, %H:%M")
                 
-                st.markdown(f"- **{u}** enjoyed a **{d}** &bull; *{time_str}*")
+                st.markdown(f"- **{u}** enjoyed a **{d}**{loc_html} &bull; *{time_str}*", unsafe_allow_html=True)
         else:
             st.write("No activity recorded yet.")
 

@@ -15,6 +15,24 @@ def process_raw_data(data, users):
     # Convert timestamps
     if not df.empty and "created_at" in df.columns:
         df["created_at"] = pd.to_datetime(df["created_at"])
+
+    # Extract location (country & city) from JSON or dedicated columns if present
+    if not df.empty:
+        if "location" in df.columns:
+            def _extract_loc(loc):
+                if isinstance(loc, dict):
+                    return loc.get("country"), loc.get("city")
+                return None, None
+            loc_tuples = df["location"].apply(_extract_loc)
+            if "country" not in df.columns or df["country"].isna().all():
+                df["country"] = [t[0] for t in loc_tuples]
+            else:
+                df["country"] = df["country"].fillna(pd.Series([t[0] for t in loc_tuples], index=df.index))
+                
+            if "city" not in df.columns or df["city"].isna().all():
+                df["city"] = [t[1] for t in loc_tuples]
+            else:
+                df["city"] = df["city"].fillna(pd.Series([t[1] for t in loc_tuples], index=df.index))
     
     # Separate Dataframes (1: Hot Coffee, 3: Iced Coffee, 2: Hot Tea, 4: Iced Tea)
     df_coffee = df[df["drink_id"].isin([1, 3])]
