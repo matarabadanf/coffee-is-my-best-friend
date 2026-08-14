@@ -63,6 +63,9 @@ inject_custom_css(user_theme, user_style, user=selected_user)
 # Check and trigger celebration dialog popup if there are pending unlocks
 trigger_celebration_popup_if_pending(selected_user)
 
+# Check and trigger celebration dialog popup if there are pending unlocks
+trigger_celebration_popup_if_pending(selected_user)
+
 trophies = get_gamification_metrics(df_coffee, df_tea, users)
 coin_balances = get_coin_balances(df, transactions, users)
 active_perks = get_active_perks(transactions, users)
@@ -345,6 +348,14 @@ else:
             with t_btn2:
                 if st.button("🧊 Iced Tea", key="btn_iced_tea", use_container_width=True):
                     handle_drink_log(4, "Tea", "Iced", selected_country_code, selected_city)
+
+    # Developer Preview Sandbox Trigger for Fer
+    if selected_user == "Fer":
+        with st.expander("🛠️ Developer Sandbox: Test Unlock Celebration Popup", expanded=False):
+            st.caption("Trigger a simulated level up & achievement popup to preview the celebratory UI, animations, bonus coin grants, and 1-tap badge equipping.")
+            if st.button("🧪 Test-Fire Level Up Modal", key="dev_test_modal_btn", use_container_width=True):
+                st.session_state["celebration_unlocks"] = compute_new_unlocks("Fer", {"tiers": set(), "secrets": set(), "crowns": set()}, {"tiers": set(), "secrets": set(), "crowns": set()}, is_dev_test=True)
+                st.rerun()
 
     # Developer Preview Sandbox Trigger for Fer
     if selected_user == "Fer":
