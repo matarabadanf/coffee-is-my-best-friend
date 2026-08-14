@@ -118,10 +118,26 @@ def save_user_preference(user_name: str, updates: dict):
     supabase = get_supabase_client()
     try:
         existing = supabase.table("user_preferences").select("*").eq("user_name", user_name).execute()
+        known_columns = {"theme", "emoji", "title", "ui_style", "default_country", "default_city", "share_live_location"}
+        col_updates = {}
+        meta_updates = {}
+        for k, v in updates.items():
+            if k in known_columns:
+                col_updates[k] = v
+            else:
+                meta_updates[k] = v
+
         if existing.data and len(existing.data) > 0:
-            return supabase.table("user_preferences").update(updates).eq("user_name", user_name).execute()
+            row = existing.data[0]
+            cur_meta = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+            if meta_updates:
+                cur_meta.update(meta_updates)
+                col_updates["metadata"] = cur_meta
+            return supabase.table("user_preferences").update(col_updates).eq("user_name", user_name).execute()
         else:
-            record = {"user_name": user_name, **updates}
+            record = {"user_name": user_name, **col_updates}
+            if meta_updates:
+                record["metadata"] = meta_updates
             return supabase.table("user_preferences").insert(record).execute()
     except Exception:
         # Fallback to coin_transactions if user_preferences table is not created yet

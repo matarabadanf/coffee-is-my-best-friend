@@ -1202,9 +1202,7 @@ def get_user_preferences(transactions=None, users=None, db_preferences=None):
                     prefs[u]["share_live_location"] = bool(row["share_live_location"])
                 if isinstance(row.get("metadata"), dict):
                     meta = row["metadata"]
-                    for k in ["theme", "emoji", "title", "ui_style", "default_country", "default_city", "share_live_location"]:
-                        if k in meta:
-                            prefs[u][k] = meta[k]
+                    for k, v in meta.items():
+                        prefs[u][k] = v
 
-    return prefs
     return prefs

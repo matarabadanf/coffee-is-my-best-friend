@@ -38,9 +38,6 @@ from components.celebrations import (
     get_user_achievement_snapshot, 
     compute_new_unlocks, 
     trigger_celebration_popup_if_pending,
-    open_celebration_dialog,
-    get_dev_test_payload,
-    get_tier_upgrade_test_payload,
     get_ui_2_0_welcome_payload
 )
 
@@ -63,6 +60,12 @@ user_style = prefs.get(selected_user, {}).get("ui_style", "Modern Flat")
 
 # Inject Active Theme & CSS (with surprise sidebar concealment for non-devs)
 inject_custom_css(user_theme, user_style, user=selected_user)
+
+# Automatic first-time Welcome to UI 2.0 celebration & feature tour trigger
+user_seen_ui2 = prefs.get(selected_user, {}).get("has_seen_ui_2_0", False)
+if not user_seen_ui2 and "celebration_unlocks" not in st.session_state:
+    st.session_state["celebration_unlocks"] = get_ui_2_0_welcome_payload(selected_user)
+    save_user_preference(selected_user, {"has_seen_ui_2_0": True})
 
 # Check and render any pending celebration popup dialogs
 trigger_celebration_popup_if_pending(selected_user)
@@ -243,13 +246,10 @@ def handle_drink_log(drink_id, drink_name, temp_name, country_code, city_name):
         fresh_df, fresh_coffee, fresh_tea, _, _ = process_raw_data(fresh_data, users)
         after_snapshot = get_user_achievement_snapshot(selected_user, fresh_coffee, fresh_tea, fresh_tx, users)
 
-        # Developer preview test trigger for Fer (to preview modal, animations, and title equipping)
-        is_dev_test = bool(selected_user == "Fer")
         new_unlocks = compute_new_unlocks(
             selected_user, 
             before_snapshot, 
             after_snapshot, 
-            is_dev_test=is_dev_test, 
             transactions=fresh_tx
         )
 
@@ -353,21 +353,6 @@ else:
             with t_btn2:
                 if st.button("🧊 Iced Tea", key="btn_iced_tea", use_container_width=True):
                     handle_drink_log(4, "Tea", "Iced", selected_country_code, selected_city)
-
-    # Developer Preview Sandbox Triggers for Fer
-    if selected_user == "Fer":
-        with st.expander("🛠️ Developer Sandbox: Test Celebrations, Upgrades & UI 2.0 Tour", expanded=False):
-            st.caption("Trigger simulated unlock flows to test animations, tier upgrades, UI 2.0 tours, coin limits, and 1-tap badge equipping.")
-            s_btn1, s_btn2, s_btn3 = st.columns(3)
-            with s_btn1:
-                if st.button("🧪 Basic Unlock Modal", key="dev_test_modal_btn", use_container_width=True):
-                    open_celebration_dialog("Fer", get_dev_test_payload("Fer"))
-            with s_btn2:
-                if st.button("🎖️ Tier Upgrade Modal", key="dev_test_upgrade_btn", use_container_width=True):
-                    open_celebration_dialog("Fer", get_tier_upgrade_test_payload("Fer"))
-            with s_btn3:
-                if st.button("🌟 Welcome to UI 2.0 Tour", key="dev_test_ui2_btn", use_container_width=True):
-                    open_celebration_dialog("Fer", get_ui_2_0_welcome_payload("Fer"))
 
 st.divider()
 
