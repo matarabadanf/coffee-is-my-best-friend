@@ -120,7 +120,7 @@ def compute_new_unlocks(user, before_snapshot, after_snapshot, is_dev_test=False
 
 # Streamlit Dialog celebration modal
 if hasattr(st, "dialog"):
-    @st.dialog("🎉 LEVEL UP & UNLOCKED! 🎉")
+    @st.dialog("🎉 LEVEL UP & UNLOCKED! 🎉", width="large")
     def _render_dialog_modal(user, items):
         _render_celebration_content(user, items)
 else:
@@ -131,14 +131,14 @@ else:
 def _render_celebration_content(user, items):
     st.balloons()
     
-    st.markdown("""
+    st.markdown(f"""
     <div style="text-align: center; margin-bottom: 1.2rem;">
         <span style="font-size: 2.8rem; line-height: 1;">🌟 🏆 🌟</span>
         <h2 style="margin: 0.4rem 0 0 0; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em;">
             WOW! WE GOT SOMETHING!
         </h2>
         <p style="color: var(--text-muted, #71717A); font-size: 0.9rem; margin-top: 4px; font-weight: 600;">
-            Incredible feat logged by <strong>""" + str(user) + """</strong>!
+            Incredible feat logged by <strong>{user}</strong>!
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -181,24 +181,24 @@ def _render_celebration_content(user, items):
             # Action Buttons
             btn_col1, btn_col2 = st.columns([1.2, 1])
             with btn_col1:
-                if title_to_equip and st.button(f"✨ Equip '{title_to_equip}'", key=f"equip_btn_{idx}_{user}", use_container_width=True):
+                if title_to_equip and st.button(f"✨ Equip '{title_to_equip}'", key=f"equip_modal_btn_{idx}_{user}_{title}", use_container_width=True):
                     try:
                         save_user_preference(user, {"title": title_to_equip})
                         st.success(f"🎉 Equipped **{title_to_equip}** as your active badge!")
-                        time.sleep(1.0)
+                        st.session_state.pop("celebration_unlocks", None)
+                        time.sleep(0.8)
+                        st.rerun()
                     except Exception as e:
                         st.error(f"Error saving badge: {e}")
             with btn_col2:
-                if st.button("🚀 Awesome! Let's Go!", key=f"dismiss_btn_{idx}_{user}", use_container_width=True):
-                    if "celebration_unlocks" in st.session_state:
-                        del st.session_state["celebration_unlocks"]
+                if st.button("🚀 Awesome! Let's Go!", key=f"dismiss_modal_btn_{idx}_{user}_{title}", use_container_width=True):
+                    st.session_state.pop("celebration_unlocks", None)
                     st.rerun()
                     
     # Bottom dismiss all button if multiple items
     if len(items) > 1:
-        if st.button("Dismiss All Celebrations", key="dismiss_all_unlocks", use_container_width=True):
-            if "celebration_unlocks" in st.session_state:
-                del st.session_state["celebration_unlocks"]
+        if st.button("Dismiss All Celebrations", key=f"dismiss_all_modal_{user}", use_container_width=True):
+            st.session_state.pop("celebration_unlocks", None)
             st.rerun()
 
 def trigger_celebration_popup_if_pending(user):
@@ -206,5 +206,5 @@ def trigger_celebration_popup_if_pending(user):
     Checks if there are pending unlocks in st.session_state and renders the celebration modal.
     """
     if "celebration_unlocks" in st.session_state and st.session_state["celebration_unlocks"]:
-        items = st.session_state["celebration_unlocks"]
+        items = list(st.session_state["celebration_unlocks"])
         _render_dialog_modal(user, items)

@@ -63,9 +63,6 @@ inject_custom_css(user_theme, user_style, user=selected_user)
 # Check and trigger celebration dialog popup if there are pending unlocks
 trigger_celebration_popup_if_pending(selected_user)
 
-# Check and trigger celebration dialog popup if there are pending unlocks
-trigger_celebration_popup_if_pending(selected_user)
-
 trophies = get_gamification_metrics(df_coffee, df_tea, users)
 coin_balances = get_coin_balances(df, transactions, users)
 active_perks = get_active_perks(transactions, users)
