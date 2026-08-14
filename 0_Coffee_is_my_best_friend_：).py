@@ -101,9 +101,10 @@ if is_patch_notes_active("world_update", dev_bypass=is_dev_mode(selected_user)):
             - 📊 **Travel Analytics**: New dedicated Travel & Geography tab on the [📈 Charts Page](pages/1_📈_Graphs!_Graphs!_Graphs!.py).
             """)
 
-# --- What's New Announcement Banner (Active during launch week: Aug 14 - Aug 21, 2026) ---
-launch_week_end = pd.Timestamp("2026-08-21 23:59:59", tz="Europe/Madrid")
-if now <= launch_week_end:
+# --- Version 2.0 Launch Banner (Active Aug 14 - Aug 21, 2026, suppressed once Drop 1 is active) ---
+v2_launch_start = pd.Timestamp("2026-08-14 00:00:00", tz="Europe/Madrid")
+v2_launch_end = pd.Timestamp("2026-08-21 23:59:59", tz="Europe/Madrid")
+if (v2_launch_start <= now <= v2_launch_end) and not is_unlocked("world_update", dev_bypass=is_dev_mode(selected_user)):
     with st.expander("✨ **What's New in Version 2.0 & Launch Week PIN Setup! (Tap to expand)**", expanded=True):
         w1, w2, w3 = st.columns(3)
         with w1:

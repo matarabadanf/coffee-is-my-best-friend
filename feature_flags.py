@@ -33,12 +33,28 @@ FEATURE_DROPS = {
 
 def get_current_madrid_time() -> pd.Timestamp:
     """Returns current timestamp in Europe/Madrid. Supports ?sim_date=YYYY-MM-DD for release simulation."""
+    sim_date = None
     try:
-        sim_date = st.query_params.get("sim_date") or st.session_state.get("sim_date")
-        if sim_date:
-            return pd.Timestamp(sim_date, tz="Europe/Madrid")
+        if hasattr(st, "query_params") and "sim_date" in st.query_params:
+            sim_date = st.query_params["sim_date"]
+        elif hasattr(st, "experimental_get_query_params"):
+            qp = st.experimental_get_query_params()
+            if "sim_date" in qp:
+                sim_date = qp["sim_date"][0]
+        if not sim_date and "sim_date" in st.session_state:
+            sim_date = st.session_state["sim_date"]
     except Exception:
         pass
+
+    if sim_date:
+        try:
+            ts = pd.Timestamp(sim_date)
+            if ts.tzinfo is None:
+                return ts.tz_localize("Europe/Madrid")
+            return ts.tz_convert("Europe/Madrid")
+        except Exception:
+            pass
+
     return pd.Timestamp.now(tz="Europe/Madrid")
 
 def is_dev_mode(user: str = None) -> bool:
