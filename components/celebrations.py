@@ -327,18 +327,21 @@ def _render_celebration_content(user, items):
 
 def open_celebration_dialog(user, items):
     """
-    Directly opens the celebration dialog modal and persists unlocks in session state.
+    Sets pending celebration unlocks in session state and triggers an immediate rerun to display the modal safely.
     """
     if items:
         st.session_state["celebration_unlocks"] = items
-        _render_dialog_modal(user, items)
+        st.rerun()
 
 def trigger_celebration_popup_if_pending(user):
     """
-    Checks if there are pending unlocks in st.session_state and renders the celebration modal.
+    Checks if there are pending unlocks in st.session_state and renders the celebration modal safely.
     """
     if "celebration_unlocks" in st.session_state and st.session_state["celebration_unlocks"]:
         items = list(st.session_state["celebration_unlocks"])
-        _render_dialog_modal(user, items)
+        try:
+            _render_dialog_modal(user, items)
+        except Exception:
+            pass
 
 
