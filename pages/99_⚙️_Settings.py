@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-from database import get_data, get_transactions, insert_transaction
+from database import get_data, get_transactions, insert_transaction, get_preferences, save_user_preference
 from data_processing import process_raw_data, get_coin_balances, get_gamification_metrics, get_user_titles, resolve_user_title, get_active_perks, get_user_preferences, get_unlocked_themes
 from utils import verify_pin, is_pin_verified, enforce_user_identity
 from world_data import (
@@ -24,11 +24,12 @@ selected_user = enforce_user_identity(users)
 
 data = get_data()
 transactions = get_transactions()
+db_prefs = get_preferences()
 df, df_coffee, df_tea, _, _ = process_raw_data(data, users)
 trophies = get_gamification_metrics(df_coffee, df_tea, users, transactions=transactions)
 coin_balances = get_coin_balances(df, transactions, users)
 
-prefs = get_user_preferences(transactions, users)
+prefs = get_user_preferences(transactions, users, db_preferences=db_prefs)
 user_theme = prefs.get(selected_user, {}).get("theme", "Latte (Light)")
 user_style = prefs.get(selected_user, {}).get("ui_style", "Modern Flat")
 inject_custom_css(user_theme, user_style, user=selected_user)
@@ -103,7 +104,7 @@ with st.container(border=True):
     )
     
     if st.button("Save Appearance", use_container_width=True):
-        insert_transaction(selected_user, 0, "preference", {"theme": theme, "ui_style": ui_style})
+        save_user_preference(selected_user, {"theme": theme, "ui_style": ui_style})
         st.success("Appearance saved! Refreshing...")
         st.rerun()
 
@@ -138,7 +139,7 @@ with st.container(border=True):
     st.caption(f"🏆 *You have **{len(earned_titles)}** unique titles and achievement badges unlocked!*")
     
     if st.button("Save Profile Settings", use_container_width=True):
-        insert_transaction(selected_user, 0, "preference", {"emoji": emoji, "title": selected_title})
+        save_user_preference(selected_user, {"emoji": emoji, "title": selected_title})
         st.success("Profile saved! Refreshing...")
         st.rerun()
 
@@ -201,7 +202,7 @@ with st.container(border=True):
     )
     
     if st.button("💾 Save Location & Privacy Settings", use_container_width=True):
-        insert_transaction(selected_user, 0, "preference", {
+        save_user_preference(selected_user, {
             "default_country": new_country_code,
             "default_city": new_city_name,
             "share_live_location": share_loc_toggle

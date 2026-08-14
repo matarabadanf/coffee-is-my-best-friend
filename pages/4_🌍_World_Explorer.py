@@ -13,7 +13,7 @@ from world_data import (
     compute_passport_stats, 
     get_travel_leaderboard
 )
-from database import get_data, get_transactions
+from database import get_data, get_transactions, get_preferences
 from data_processing import (
     process_raw_data, 
     get_user_preferences, 
@@ -39,10 +39,11 @@ if not is_unlocked("world_update", dev_bypass=is_dev_mode(selected_user)):
 # 3. Data Loading & Styling
 data = get_data()
 transactions = get_transactions()
+db_prefs = get_preferences()
 df, df_coffee, df_tea, _, _ = process_raw_data(data, users)
 trophies = get_gamification_metrics(df_coffee, df_tea, users, transactions=transactions)
 coin_balances = get_coin_balances(df, transactions, users)
-prefs = get_user_preferences(transactions, users)
+prefs = get_user_preferences(transactions, users, db_preferences=db_prefs)
 
 user_theme = prefs.get(selected_user, {}).get("theme", "Latte (Light)")
 user_style = prefs.get(selected_user, {}).get("ui_style", "Modern Flat")

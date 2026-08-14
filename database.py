@@ -104,3 +104,26 @@ def insert_transaction(user: str, amount: int, transaction_type: str, metadata: 
     }
     return supabase.table("coin_transactions").insert(event_data).execute()
 
+def get_preferences():
+    """Fetches all rows from the dedicated user_preferences table."""
+    supabase = get_supabase_client()
+    try:
+        response = supabase.table("user_preferences").select("*").execute()
+        return response.data or []
+    except Exception:
+        return []
+
+def save_user_preference(user_name: str, updates: dict):
+    """Saves or updates user settings in user_preferences table with seamless fallback."""
+    supabase = get_supabase_client()
+    try:
+        existing = supabase.table("user_preferences").select("*").eq("user_name", user_name).execute()
+        if existing.data and len(existing.data) > 0:
+            return supabase.table("user_preferences").update(updates).eq("user_name", user_name).execute()
+        else:
+            record = {"user_name": user_name, **updates}
+            return supabase.table("user_preferences").insert(record).execute()
+    except Exception:
+        # Fallback to coin_transactions if user_preferences table is not created yet
+        return insert_transaction(user_name, 0, "preference", updates)
+

@@ -3,7 +3,7 @@ import pandas as pd
 import datetime
 
 # Import refactored modules
-from database import get_data, get_transactions
+from database import get_data, get_transactions, get_preferences
 from data_processing import (
     process_raw_data, 
     get_cumulative_data, 
@@ -35,9 +35,10 @@ selected_user = enforce_user_identity(users)
 
 data = get_data()
 transactions = get_transactions()
+db_prefs = get_preferences()
 df, df_coffee, df_tea, coffee_scores, tea_scores = process_raw_data(data, users)
 
-prefs = get_user_preferences(transactions, users)
+prefs = get_user_preferences(transactions, users, db_preferences=db_prefs)
 user_theme = prefs.get(selected_user, {}).get("theme", "Latte (Light)")
 user_style = prefs.get(selected_user, {}).get("ui_style", "Modern Flat")
 inject_custom_css(user_theme, user_style, user=selected_user)

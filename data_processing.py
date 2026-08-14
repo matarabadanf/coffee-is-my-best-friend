@@ -1098,7 +1098,10 @@ def get_unlocked_themes(transactions, user):
     # Return in standardized order
     return [t for t in ALL_VALID_THEMES if t in unlocked]
 
-def get_user_preferences(transactions, users):
+def get_user_preferences(transactions=None, users=None, db_preferences=None):
+    if users is None:
+        users = ["Cris", "Bea", "Fer"]
+        
     prefs = {
         u: {
             "theme": "Latte (Light)", 
@@ -1111,41 +1114,66 @@ def get_user_preferences(transactions, users):
         } for u in users
     }
     
-    if not transactions:
-        return prefs
-        
-    tx_df = pd.DataFrame(transactions)
-    if tx_df.empty or "transaction_type" not in tx_df.columns:
-        return prefs
-        
-    pref_txs = tx_df[tx_df["transaction_type"] == "preference"]
-    if pref_txs.empty:
-        return prefs
-        
-    for _, row in pref_txs.iterrows():
-        u = row.get("user_name")
-        meta = row.get("metadata", {})
-        if u in prefs and isinstance(meta, dict):
-            if "theme" in meta:
-                theme_val = meta["theme"]
-                unlocked_for_u = get_unlocked_themes(transactions, u)
-                if theme_val not in unlocked_for_u:
-                    theme_val = "Latte (Light)"
-                prefs[u]["theme"] = theme_val
-            if "emoji" in meta:
-                prefs[u]["emoji"] = meta["emoji"]
-            if "title" in meta:
-                prefs[u]["title"] = meta["title"]
-            if "ui_style" in meta:
-                style_val = meta["ui_style"]
-                if style_val not in ["Modern Flat", "Glassmorphism", "Neumorphism"]:
-                    style_val = "Modern Flat"
-                prefs[u]["ui_style"] = style_val
-            if "default_country" in meta:
-                prefs[u]["default_country"] = meta["default_country"]
-            if "default_city" in meta:
-                prefs[u]["default_city"] = meta["default_city"]
-            if "share_live_location" in meta:
-                prefs[u]["share_live_location"] = bool(meta["share_live_location"])
-                
+    # 1. Apply preferences from coin_transactions (legacy fallback)
+    if transactions:
+        tx_df = pd.DataFrame(transactions)
+        if not tx_df.empty and "transaction_type" in tx_df.columns:
+            pref_txs = tx_df[tx_df["transaction_type"] == "preference"]
+            for _, row in pref_txs.iterrows():
+                u = row.get("user_name")
+                meta = row.get("metadata", {})
+                if u in prefs and isinstance(meta, dict):
+                    if "theme" in meta:
+                        theme_val = meta["theme"]
+                        unlocked_for_u = get_unlocked_themes(transactions, u)
+                        if theme_val not in unlocked_for_u:
+                            theme_val = "Latte (Light)"
+                        prefs[u]["theme"] = theme_val
+                    if "emoji" in meta:
+                        prefs[u]["emoji"] = meta["emoji"]
+                    if "title" in meta:
+                        prefs[u]["title"] = meta["title"]
+                    if "ui_style" in meta:
+                        style_val = meta["ui_style"]
+                        if style_val not in ["Modern Flat", "Glassmorphism", "Neumorphism"]:
+                            style_val = "Modern Flat"
+                        prefs[u]["ui_style"] = style_val
+                    if "default_country" in meta:
+                        prefs[u]["default_country"] = meta["default_country"]
+                    if "default_city" in meta:
+                        prefs[u]["default_city"] = meta["default_city"]
+                    if "share_live_location" in meta:
+                        prefs[u]["share_live_location"] = bool(meta["share_live_location"])
+
+    # 2. Apply from dedicated user_preferences table (takes primary precedence)
+    if db_preferences:
+        for row in db_preferences:
+            u = row.get("user_name")
+            if u in prefs:
+                if row.get("theme"):
+                    theme_val = row["theme"]
+                    unlocked_for_u = get_unlocked_themes(transactions or [], u)
+                    if theme_val not in unlocked_for_u:
+                        theme_val = "Latte (Light)"
+                    prefs[u]["theme"] = theme_val
+                if row.get("emoji"):
+                    prefs[u]["emoji"] = row["emoji"]
+                if "title" in row and row["title"] is not None:
+                    prefs[u]["title"] = row["title"]
+                if row.get("ui_style"):
+                    style_val = row["ui_style"]
+                    if style_val in ["Modern Flat", "Glassmorphism", "Neumorphism"]:
+                        prefs[u]["ui_style"] = style_val
+                if row.get("default_country"):
+                    prefs[u]["default_country"] = row["default_country"]
+                if row.get("default_city"):
+                    prefs[u]["default_city"] = row["default_city"]
+                if "share_live_location" in row and row["share_live_location"] is not None:
+                    prefs[u]["share_live_location"] = bool(row["share_live_location"])
+                if isinstance(row.get("metadata"), dict):
+                    meta = row["metadata"]
+                    for k in ["theme", "emoji", "title", "ui_style", "default_country", "default_city", "share_live_location"]:
+                        if k in meta:
+                            prefs[u][k] = meta[k]
+
     return prefs
