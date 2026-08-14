@@ -145,13 +145,16 @@ def compute_monarch_hall_of_fame(df_coffee, df_tea, users, transactions=None):
                 })
         combustion_hof.sort(key=lambda x: (x["is_current"], x["fire_days"]), reverse=True)
 
+    caff_monarch_dict = {
+        "title": "👑 Caffeine Monarch",
+        "subtitle": "Weekly Caffeine Champion",
+        "metric_label": "Weeks Crowned",
+        "hall_of_fame": caffeine_hof
+    }
+
     return {
-        "caffeine_emperor": {
-            "title": "👑 Caffeine Emperor",
-            "subtitle": "Weekly Caffeine Champion",
-            "metric_label": "Weeks Crowned",
-            "hall_of_fame": caffeine_hof
-        },
+        "caffeine_monarch": caff_monarch_dict,
+        "caffeine_emperor": caff_monarch_dict,
         "tea_sovereign": {
             "title": "🍵 Tea Dynasty Sovereign",
             "subtitle": "Highest Tea Ratio Dedication",

@@ -29,7 +29,7 @@ def get_user_achievement_snapshot(user, df_coffee, df_tea, transactions, users):
     # Crowns / Monarch titles
     crowns = set()
     if trophies.get("caffeine_addict") == user:
-        crowns.add("👑 Caffeine Emperor")
+        crowns.add("👑 Caffeine Monarch")
     if trophies.get("tea_purist") == user:
         crowns.add("🍵 Tea Dynasty Sovereign")
     if trophies.get("ice_monarch") == user:

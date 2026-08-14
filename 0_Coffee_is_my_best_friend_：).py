@@ -237,14 +237,14 @@ with st.expander(patch_expander_title, expanded=True):
         #### 🌍 **World Explorer & Passport**
         - ✈️ **Real-Time Travel Logging**: Log beverages with exact **Country & City** directly from the beverage bar!
         - 🏠 **Personalized Home Bases**: Configured per explorer (**Bea**: 🇳🇱 Amsterdam, **Fer**: 🇫🇷 Paris, **Cris**: 🇨🇿 Prague) with dynamic geocoding.
-        - 🗺️ **Interactive Travel Map**: Open [🌍 World Explorer](pages/4_🌍_World_Explorer.py) to view city markers, multi-crew explorer filters, and beverage views.
+        - 🗺️ **Interactive Travel Map**: Open [🌍 World Explorer](pages/3_🌍_World_Explorer.py) to view city markers, multi-crew explorer filters, and beverage views.
         - 🔒 **Location Privacy Controls**: Instant toggle in [⚙️ Settings](pages/99_⚙️_Settings.py) to control whether your live feed broadcasts your city/country.
         """)
     with pn2:
         st.markdown("""
         #### 🎨 **UI 2.0 & Dynamic Morphism**
         - ✨ **Dynamic Morphism Engine**: Switch between **Modern Flat**, **Glassmorphism**, and **Neumorphism** styles!
-        - 🛍️ **Theme Boutique**: 8 handcrafted color palettes (*Latte, Espresso, Matcha, Caramel Macchiato, Strawberry Frappé, Taro Boba, Midnight Cyber Brew, Velvet Mocha*) in [🎨 Theme Boutique](pages/3_🎨_Theme_Shop.py).
+        - 🛍️ **Theme Boutique**: 8 handcrafted color palettes (*Latte, Espresso, Matcha, Caramel Macchiato, Strawberry Frappé, Taro Boba, Midnight Cyber Brew, Velvet Mocha*) in [🎨 Theme Boutique](pages/98_🎨_Theme_Shop.py).
         - ⚡ **Synchronized Activity Feed**: Pure `clicks` source of truth updating instantly upon beverage logging or modifications.
         """)
     with pn3:
@@ -584,8 +584,8 @@ with nav_col:
         with n1:
             st.page_link("pages/1_📈_Graphs!_Graphs!_Graphs!.py", label="Analytics & Charts", icon="📈")
             st.page_link("pages/2_🏆_Trophy_Room.py", label="Trophies & Badges", icon="🏆")
-        with n2:
             if is_unlocked("world_update"):
-                st.page_link("pages/4_🌍_World_Explorer.py", label="World Explorer", icon="🌍")
-            st.page_link("pages/3_🎨_Theme_Shop.py", label="Theme Boutique", icon="🎨")
+                st.page_link("pages/3_🌍_World_Explorer.py", label="World Explorer", icon="🌍")
+        with n2:
+            st.page_link("pages/98_🎨_Theme_Shop.py", label="Theme Boutique", icon="🎨")
             st.page_link("pages/99_⚙️_Settings.py", label="Settings", icon="⚙️")
