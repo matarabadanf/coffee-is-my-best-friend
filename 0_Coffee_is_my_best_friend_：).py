@@ -34,6 +34,11 @@ from components.ui import (
     render_circular_caffeine_gauge, 
     render_coffee_tea_fuel_bar
 )
+from components.celebrations import (
+    get_user_achievement_snapshot, 
+    compute_new_unlocks, 
+    trigger_celebration_popup_if_pending
+)
 
 # 1. Page Configuration
 st.set_page_config(page_title="Coffee is my best friend", page_icon="☕", layout="wide")
@@ -54,6 +59,9 @@ user_style = prefs.get(selected_user, {}).get("ui_style", "Modern Flat")
 
 # Inject Active Theme & CSS (with surprise sidebar concealment for non-devs)
 inject_custom_css(user_theme, user_style, user=selected_user)
+
+# Check and trigger celebration dialog popup if there are pending unlocks
+trigger_celebration_popup_if_pending(selected_user)
 
 trophies = get_gamification_metrics(df_coffee, df_tea, users)
 coin_balances = get_coin_balances(df, transactions, users)
@@ -206,6 +214,9 @@ def handle_drink_log(drink_id, drink_name, temp_name, country_code, city_name):
         st.warning(f"Wait {int(60 - (now - last_click_time).total_seconds())}s before logging again!")
         return
     try:
+        # 0. Capture Before Snapshot for celebration detection
+        before_snapshot = get_user_achievement_snapshot(selected_user, df_coffee, df_tea, transactions, users)
+
         # 1. Insert Click Record with location columns (1: Hot Coffee, 3: Iced Coffee, 2: Hot Tea, 4: Iced Tea)
         insert_click(selected_user, 1, drink_id, country=country_code, city=city_name)
         # 2. Insert Coin Transaction with explicit temperature, country, and city metadata
@@ -221,12 +232,34 @@ def handle_drink_log(drink_id, drink_name, temp_name, country_code, city_name):
                 "city": city_name
             }
         )
+
+        # 3. Capture After Snapshot & Detect Unlocks
+        fresh_data = get_data()
+        fresh_tx = get_transactions()
+        fresh_df, fresh_coffee, fresh_tea, _, _ = process_raw_data(fresh_data, users)
+        after_snapshot = get_user_achievement_snapshot(selected_user, fresh_coffee, fresh_tea, fresh_tx, users)
+
+        # Developer preview test trigger for Fer (to preview modal, animations, and title equipping)
+        is_dev_test = bool(selected_user == "Fer")
+        new_unlocks = compute_new_unlocks(selected_user, before_snapshot, after_snapshot, is_dev_test=is_dev_test)
+
+        if new_unlocks:
+            st.session_state["celebration_unlocks"] = new_unlocks
+            for item in new_unlocks:
+                if item.get("reward_coins", 0) > 0:
+                    insert_transaction(
+                        selected_user, 
+                        item["reward_coins"], 
+                        "shop", 
+                        {"item": f"reward_{item.get('title')}", "reward_unlock": item.get('title')}
+                    )
+
         if "tea" in drink_name.lower():
             st.snow()
         else:
             st.balloons()
         st.success(f"**{temp_name} {drink_name} Logged in {city_name}, {get_option_from_code(country_code)}!** (+10 🪙)")
-        time.sleep(1.2)
+        time.sleep(1.0)
         st.rerun()
     except Exception as e:
         st.error(f"Error logging drink: {e}")
@@ -312,6 +345,14 @@ else:
             with t_btn2:
                 if st.button("🧊 Iced Tea", key="btn_iced_tea", use_container_width=True):
                     handle_drink_log(4, "Tea", "Iced", selected_country_code, selected_city)
+
+    # Developer Preview Sandbox Trigger for Fer
+    if selected_user == "Fer":
+        with st.expander("🛠️ Developer Sandbox: Test Unlock Celebration Popup", expanded=False):
+            st.caption("Trigger a simulated level up & achievement popup to preview the celebratory UI, animations, bonus coin grants, and 1-tap badge equipping.")
+            if st.button("🧪 Test-Fire Level Up Modal", key="dev_test_modal_btn", use_container_width=True):
+                st.session_state["celebration_unlocks"] = compute_new_unlocks("Fer", {"tiers": set(), "secrets": set(), "crowns": set()}, {"tiers": set(), "secrets": set(), "crowns": set()}, is_dev_test=True)
+                st.rerun()
 
 st.divider()
 
