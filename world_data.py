@@ -1,7 +1,31 @@
-"""Travel country registry, user defaults, and passport computation helpers for the World Update."""
-
+import json
+import os
+import urllib.parse
+import urllib.request
 from typing import TypedDict
 import pandas as pd
+
+# Local persistent geocode cache for custom cities
+_GEOCODE_CACHE_FILE = os.path.join(os.path.dirname(__file__), ".city_geocache.json")
+_GEOCODE_CACHE: dict[str, list[float]] = {}
+
+def _load_geocode_cache():
+    global _GEOCODE_CACHE
+    if os.path.exists(_GEOCODE_CACHE_FILE):
+        try:
+            with open(_GEOCODE_CACHE_FILE, "r", encoding="utf-8") as f:
+                _GEOCODE_CACHE = json.load(f)
+        except Exception:
+            _GEOCODE_CACHE = {}
+
+def _save_geocode_cache():
+    try:
+        with open(_GEOCODE_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(_GEOCODE_CACHE, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+_load_geocode_cache()
 
 class CountryInfo(TypedDict):
     name: str
@@ -444,14 +468,49 @@ def get_cities_for_country(country_code: str) -> list[str]:
     country_info = TRAVEL_COUNTRIES.get(country_code)
     return [country_info["name"]] if country_info else ["Central"]
 
+def geocode_city_online(country_code: str, city_name: str) -> tuple[float, float] | None:
+    """Queries OpenStreetMap Nominatim for accurate coordinates of any custom city or town worldwide."""
+    c_info = TRAVEL_COUNTRIES.get(country_code.upper())
+    country_name = c_info["name"] if c_info else country_code
+    query = f"{city_name}, {country_name}"
+    
+    url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(query)}&format=json&limit=1"
+    req = urllib.request.Request(url, headers={"User-Agent": "CoffeeIsMyBestFriend/1.0 (TravelTracker)"})
+    
+    try:
+        with urllib.request.urlopen(req, timeout=2.5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if data and len(data) > 0:
+                lat = float(data[0]["lat"])
+                lon = float(data[0]["lon"])
+                return (lat, lon)
+    except Exception:
+        pass
+    return None
+
 def get_city_coordinates(country_code: str, city: str) -> tuple[float, float]:
-    """Returns (lat, lon) for a city in a given country, falling back to country centroid."""
+    """Returns (lat, lon) for any city in a given country. Checks static catalog, local geocache, and online geocoder with centroid fallback."""
     c_code = country_code.upper()
     c_name = normalize_city_name(city).lower()
+    cache_key = f"{c_code}:{c_name}"
     
+    # 1. Static dictionary lookup
     if (c_code, c_name) in CITY_COORDINATES:
         return CITY_COORDINATES[(c_code, c_name)]
         
+    # 2. Local persistent cache lookup
+    if cache_key in _GEOCODE_CACHE:
+        cached = _GEOCODE_CACHE[cache_key]
+        return (cached[0], cached[1])
+        
+    # 3. Dynamic online geocoding (e.g. Alcobendas, Delft, Heidelberg, etc.)
+    online_coords = geocode_city_online(c_code, normalize_city_name(city))
+    if online_coords:
+        _GEOCODE_CACHE[cache_key] = [online_coords[0], online_coords[1]]
+        _save_geocode_cache()
+        return online_coords
+        
+    # 4. Fallback to country centroid
     country_info = TRAVEL_COUNTRIES.get(c_code)
     if country_info:
         return (country_info["lat"], country_info["lon"])
