@@ -577,6 +577,18 @@ In the `ACHIEVEMENT_TIERS` dictionary:
             {"level": "Diamond", "name": "🗺️ World Traveler",     "target": 15},
             {"level": "Master",  "name": "👑 Nomad Supreme",      "target": 25},
         ]
+    },
+    "metropolis_explorer": {
+        "title": "🏙️ Metropolis Explorer",
+        "icon": "🏙️",
+        "desc": "Visit different cities across your coffee journeys.",
+        "tiers": [
+            {"level": "Bronze",  "name": "🚶 Urban Roamer",       "target": 3},
+            {"level": "Silver",  "name": "🚲 City Hopper",        "target": 8},
+            {"level": "Gold",    "name": "🚇 Metropolitan",       "target": 18},
+            {"level": "Diamond", "name": "✈️ Cosmopolitan",       "target": 35},
+            {"level": "Master",  "name": "👑 Global Citizen",      "target": 60},
+        ]
     }
 }
 ```

@@ -225,11 +225,11 @@ ACHIEVEMENT_TIERS = {
         "icon": "🏙️",
         "desc": "Visit different cities across your coffee journeys.",
         "tiers": [
-            {"level": "Bronze",  "name": "🚶 Urban Roamer",       "target": 2},
-            {"level": "Silver",  "name": "🚲 City Hopper",        "target": 5},
-            {"level": "Gold",    "name": "🚇 Metropolitan",       "target": 10},
-            {"level": "Diamond", "name": "✈️ Cosmopolitan",       "target": 20},
-            {"level": "Master",  "name": "👑 Global Citizen",      "target": 35},
+            {"level": "Bronze",  "name": "🚶 Urban Roamer",       "target": 3},
+            {"level": "Silver",  "name": "🚲 City Hopper",        "target": 8},
+            {"level": "Gold",    "name": "🚇 Metropolitan",       "target": 18},
+            {"level": "Diamond", "name": "✈️ Cosmopolitan",       "target": 35},
+            {"level": "Master",  "name": "👑 Global Citizen",      "target": 60},
         ]
     }
 }
