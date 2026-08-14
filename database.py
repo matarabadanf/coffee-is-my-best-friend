@@ -33,26 +33,45 @@ def get_data():
 
 def insert_click(user: str, value: int, drink_id: int, country: str = None, city: str = None):
     supabase = get_supabase_client()
-    event_data = {
+    
+    # 1. Preferred modern format: single JSON column "location" (e.g. {"country": "ES", "city": "Alcobendas"})
+    if country or city:
+        loc_json = {}
+        if country: loc_json["country"] = country
+        if city: loc_json["city"] = city
+        
+        # Try inserting with single JSON column 'location'
+        try:
+            event_data_json = {
+                "user_name": user,
+                "value": value,
+                "drink_id": drink_id,
+                "location": loc_json
+            }
+            return supabase.table("clicks").insert(event_data_json).execute()
+        except Exception:
+            pass
+            
+        # Try inserting with separate columns 'country' and 'city'
+        try:
+            event_data_cols = {
+                "user_name": user,
+                "value": value,
+                "drink_id": drink_id,
+                "country": country,
+                "city": city
+            }
+            return supabase.table("clicks").insert(event_data_cols).execute()
+        except Exception:
+            pass
+
+    # 3. Base fallback without location columns
+    fallback_data = {
         "user_name": user,
         "value": value,
         "drink_id": drink_id
     }
-    if country:
-        event_data["country"] = country
-    if city:
-        event_data["city"] = city
-        
-    try:
-        return supabase.table("clicks").insert(event_data).execute()
-    except Exception:
-        # Graceful fallback if country/city columns have not yet been added to Supabase clicks table
-        fallback_data = {
-            "user_name": user,
-            "value": value,
-            "drink_id": drink_id
-        }
-        return supabase.table("clicks").insert(fallback_data).execute()
+    return supabase.table("clicks").insert(fallback_data).execute()
 
 def get_transactions():
     supabase = get_supabase_client()

@@ -630,13 +630,27 @@ def compute_passport_stats(
         else:
             valid_txs = all_drink_txs
 
-    # Incorporate direct location from clicks_data if country/city columns exist in clicks table
+    # Incorporate direct location from clicks_data if location JSON or country/city columns exist in clicks table
     if clicks_data:
-        has_direct_loc_clicks = any("country" in c and c["country"] for c in clicks_data)
+        has_direct_loc_clicks = any(
+            (isinstance(c.get("location"), dict) and c["location"].get("country")) or ("country" in c and c["country"]) 
+            for c in clicks_data
+        )
         if has_direct_loc_clicks:
             direct_tx_format = []
             for c in clicks_data:
-                if c.get("country"):
+                loc = c.get("location")
+                if isinstance(loc, dict) and loc.get("country"):
+                    direct_tx_format.append({
+                        "user_name": c.get("user_name"),
+                        "created_at": c.get("created_at"),
+                        "metadata": {
+                            "country": loc.get("country"),
+                            "city": loc.get("city"),
+                            "drink_id": c.get("drink_id", 1)
+                        }
+                    })
+                elif c.get("country"):
                     direct_tx_format.append({
                         "user_name": c.get("user_name"),
                         "created_at": c.get("created_at"),

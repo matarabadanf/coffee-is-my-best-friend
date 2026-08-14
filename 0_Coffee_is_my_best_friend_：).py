@@ -404,8 +404,8 @@ with feed_col:
                 else:
                     d = f"{meta.get('temperature', '').title()} {meta.get('drink', 'Beverage').title()} ☕"
                     
-                # Privacy Setting Check for User: share_live_location
-                user_share_loc = prefs.get(u, {}).get("share_live_location", False)
+                # Privacy Setting Check for User: share_live_location (defaults to True)
+                user_share_loc = prefs.get(u, {}).get("share_live_location", True)
                 loc_html = ""
                 if user_share_loc and meta.get("country"):
                     c_code = meta.get("country")
