@@ -1,7 +1,7 @@
 import pandas as pd
 
 # UI 2.0 & World Update Release Date Cutoff: Progression for personal milestone tracks and secret feats starts here!
-ACHIEVEMENTS_START_DATE = pd.Timestamp("2026-08-14 15:10:00", tz="Europe/Madrid")
+ACHIEVEMENTS_START_DATE = pd.Timestamp("2026-08-15 00:00:00", tz="Europe/Madrid")
 
 # Achievement Configuration Tiers (Calibrated for balanced prestige and long-term milestones)
 ACHIEVEMENT_TIERS = {

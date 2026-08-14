@@ -33,7 +33,7 @@ selected_user = enforce_user_identity(users)
 # 2. Guard Pattern
 if not is_unlocked("world_update"):
     st.markdown(f"### {get_countdown_text('world_update')}")
-    st.info("The 🌍 **World Update** is scheduled to unlock at **15:10 Madrid Time**!")
+    st.info("The 🌍 **World Update** is scheduled to unlock **Tonight at Midnight (00:00 Madrid Time)**!")
     st.stop()
 
 # 3. Data Loading & Styling

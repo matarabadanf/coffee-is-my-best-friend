@@ -87,94 +87,68 @@ render_daily_fact_quote()
 
 # --- Time Context (with simulation support) ---
 now = get_current_madrid_time() if df.empty else get_current_madrid_time()
+unlock_time = pd.Timestamp("2026-08-15 00:00:00", tz="Europe/Madrid")
 
-# --- Drop 1 World Update & UI 2.0 Patch Notes Banner (Active for 7 days upon release or in Dev Preview) ---
-if is_patch_notes_active("world_update"):
-    with st.expander("🌍 **Drop 1 Patch Notes — World Explorer & UI 2.0 Major Update is LIVE! (Tap to expand)**", expanded=True):
-        pn1, pn2, pn3 = st.columns(3)
-        with pn1:
-            st.markdown("""
-            #### 🌍 **World Explorer & Passport**
-            - ✈️ **Real-Time Travel Logging**: Log beverages with exact **Country & City** directly from the beverage bar!
-            - 🏠 **Personalized Home Bases**: Configured per explorer (**Bea**: 🇳🇱 Amsterdam, **Fer**: 🇫🇷 Paris, **Cris**: 🇨🇿 Prague) with dynamic geocoding.
-            - 🗺️ **Interactive Travel Map**: Open [🌍 World Explorer](pages/4_🌍_World_Explorer.py) to view city markers, multi-crew explorer filters, and beverage views.
-            - 🔒 **Location Privacy Controls**: Instant toggle in [⚙️ Settings](pages/99_⚙️_Settings.py) to control whether your live feed broadcasts your city/country.
-            """)
-        with pn2:
-            st.markdown("""
-            #### 🎨 **UI 2.0 & Dynamic Morphism**
-            - ✨ **Dynamic Morphism Engine**: Switch between **Modern Flat**, **Glassmorphism**, and **Neumorphism** styles!
-            - 🛍️ **Theme Boutique**: 8 handcrafted color palettes (*Latte, Espresso, Matcha, Caramel Macchiato, Strawberry Frappé, Taro Boba, Midnight Cyber Brew, Velvet Mocha*) in [🎨 Theme Boutique](pages/3_🎨_Theme_Shop.py).
-            - ⚡ **Synchronized Activity Feed**: Pure `clicks` source of truth updating instantly upon beverage logging or modifications.
-            """)
-        with pn3:
-            st.markdown("""
-            #### 🏆 **Achievements & Dynasty Hall of Fame**
-            - 🎖️ **13 Progressive Mastery Tracks**: Featuring *World Explorer*, *Metropolis Explorer*, *Espresso Mastery*, *Zen Tea Garden*, *Sub-Zero Frost*, *Streak Sovereign*, and more.
-            - ⬆️ **Tier Upgrade Celebrations**: Live modal alerts comparing previous vs newly unlocked tiers with 1-tap emoji badge equipping!
-            - 👑 **Dynasty Hall of Fame**: Direct in-place rankings on all 13 cards in [🏆 Trophy Room](pages/2_🏆_Trophy_Room.py) with lifetime +250 🪙 crown rewards.
-            - 🕵️ **Arcane Secret Feats**: Concealed easter eggs and cryptic riddles hidden in Tab 3!
-            """)
+# --- 🚀 BIG HYPE COUNTDOWN CLOCK TO TONIGHT AT 00:00 ---
+if now < unlock_time:
+    delta = unlock_time - now
+    total_secs = max(0, int(delta.total_seconds()))
+    h = total_secs // 3600
+    m = (total_secs % 3600) // 60
+    s = total_secs % 60
+    
+    st.markdown(f"""
+    <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%); padding: 26px 20px; border-radius: 18px; color: white; text-align: center; box-shadow: 0 10px 30px rgba(49, 46, 129, 0.35); margin-bottom: 22px; border: 1px solid rgba(165, 180, 252, 0.3);">
+        <div style="font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 2.5px; color: #a5b4fc; margin-bottom: 6px;">🚀 MAJOR UPDATE INCOMING &bull; DROP 1</div>
+        <div style="font-size: 26px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 6px;">🌍 World Explorer & UI 2.0 Drops Tonight at Midnight! ✨</div>
+        <div style="font-size: 14px; color: #e0e7ff; margin-bottom: 18px;">Get HYPED! Stamped city passports, dynamic travel maps, 13 achievement tracks, and dynasty Hall of Fame arrive in:</div>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 14px; margin: 12px 0 16px 0;">
+            <div style="background: rgba(255,255,255,0.12); backdrop-filter: blur(10px); padding: 14px 22px; border-radius: 14px; min-width: 90px; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                <div style="font-size: 38px; font-weight: 900; line-height: 1; font-family: 'Courier New', monospace; color: #fde047; text-shadow: 0 0 15px rgba(253, 224, 71, 0.5);">{h:02d}</div>
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #c7d2fe; margin-top: 6px;">Hours</div>
+            </div>
+            <div style="font-size: 34px; font-weight: 900; color: #a5b4fc; margin-top: -14px;">:</div>
+            <div style="background: rgba(255,255,255,0.12); backdrop-filter: blur(10px); padding: 14px 22px; border-radius: 14px; min-width: 90px; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                <div style="font-size: 38px; font-weight: 900; line-height: 1; font-family: 'Courier New', monospace; color: #fde047; text-shadow: 0 0 15px rgba(253, 224, 71, 0.5);">{m:02d}</div>
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #c7d2fe; margin-top: 6px;">Minutes</div>
+            </div>
+            <div style="font-size: 34px; font-weight: 900; color: #a5b4fc; margin-top: -14px;">:</div>
+            <div style="background: rgba(255,255,255,0.12); backdrop-filter: blur(10px); padding: 14px 22px; border-radius: 14px; min-width: 90px; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                <div style="font-size: 38px; font-weight: 900; line-height: 1; font-family: 'Courier New', monospace; color: #fde047; text-shadow: 0 0 15px rgba(253, 224, 71, 0.5);">{s:02d}</div>
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #c7d2fe; margin-top: 6px;">Seconds</div>
+            </div>
+        </div>
+        <div style="font-size: 13px; color: #c7d2fe;">⏰ Launch Target: <b>Tonight at 00:00:00 CEST (Aug 15, Madrid Time)</b></div>
+    </div>
+    """, unsafe_allow_html=True)
 
-# --- Version 2.0 Launch Banner (Active Aug 14 - Aug 21, 2026, suppressed once Drop 1 is active) ---
-v2_launch_start = pd.Timestamp("2026-08-14 00:00:00", tz="Europe/Madrid")
-v2_launch_end = pd.Timestamp("2026-08-21 23:59:59", tz="Europe/Madrid")
-if (v2_launch_start <= now <= v2_launch_end) and not is_unlocked("world_update"):
-    with st.expander("✨ **What's New in Version 2.0 & Launch Week PIN Setup! (Tap to expand)**", expanded=True):
-        w1, w2, w3 = st.columns(3)
-        with w1:
-            st.markdown("""
-            #### 🎨 **Fresh Look & Atmosphere**
-            - ✨ **Smoother & Sleeker Interface**: A completely refreshed visual experience that is cleaner, smoother, and much nicer to use every day.
-            - 🛍️ **Theme Boutique**: Unlock **Espresso (Dark)** for just 🪙 **20 Coins** as a tutorial unlock (plus 6 handcrafted themes & 3 visual styles) in [`pages/3_🎨_Theme_Shop.py`](file:///wsl.localhost/Ubuntu-26.04/home/matis-ubuntu/bin/coffee-is-my-best-friend/pages/3_🎨_Theme_Shop.py).
-            """)
-        with w2:
-            st.markdown("""
-            #### ☕ **Beverage & Velocity Engine**
-            - 🧊 **Hot vs. Iced Split**: Log **Hot** and **Iced** versions of Coffee & Tea with full temperature breakdown!
-            - ⚡ **High-Speed Velocity Meter**: No health lectures—pure speed! Reaching 400+ mg triggers an epic **🔥 ON-FIRE! Warp Speed** state.
-            - 🧭 **Unified App Header**: Live Madrid time context, active streaks, and coin balances.
-            """)
-        with w3:
-            st.markdown("""
-            #### 🏆 **Gamification & Secrets**
-            - 👑 **Global Monarch Crowns**: Gender-neutral crowns including **🧊 Sub-Zero** and **🔥 Combustion** (Fer with 9 On-Fire days)!
-            - 🎖️ **11 Mastery Tracks**: Calibrated progress bars for Total, Espresso, Tea, Sub-Zero, Streaks, and Combustion.
-            - 🕵️ **11 Arcane Secrets**: Concealed achievements and cryptic riddles hidden within Tab 3 of the Trophy Room for those clever enough to uncover them!
-            """)
-        
-        st.info("💡 **Pro-Tip & Direct Bookmark:** You can bookmark `/?user=Cris`, `/?user=Bea`, or `/?user=Fer` in your browser to skip the profile selector and open straight into your dashboard!")
-        
-        st.divider()
-        
-        # --- Friendly PIN Hasher Tool for Launch Week ---
-        st.markdown("### 🔐 **Launch Week Security: Setup Your Profile PIN**")
+# --- 📜 COMPREHENSIVE DROP 1 & UI 2.0 PATCH NOTES ---
+patch_expander_title = "🌍 **Drop 1 Patch Notes — World Explorer & UI 2.0 Major Update (Preview Details)**" if now < unlock_time else "🎉 **Drop 1 Patch Notes — World Explorer & UI 2.0 is LIVE! (Tap to expand)**"
+with st.expander(patch_expander_title, expanded=True):
+    pn1, pn2, pn3 = st.columns(3)
+    with pn1:
         st.markdown("""
-        **Why is a PIN required?**
-        - 🛡️ **Profile Customization**: Your custom titles, theme aesthetics, and emojis are tied to your personal identity so no one can accidentally overwrite your setup.
-        - 🪙 **Coin Economy & Bot Shield**: **Coins WILL be heavily relevant in upcoming updates!** (Powering upcoming perks, mystery drops, shop items, and interactive features). When spending coins, your PIN acts as a firewall so random web bots or visitors cannot tamper with your account or drain your hard-earned coin treasury!
+        #### 🌍 **World Explorer & Passport**
+        - ✈️ **Real-Time Travel Logging**: Log beverages with exact **Country & City** directly from the beverage bar!
+        - 🏠 **Personalized Home Bases**: Configured per explorer (**Bea**: 🇳🇱 Amsterdam, **Fer**: 🇫🇷 Paris, **Cris**: 🇨🇿 Prague) with dynamic geocoding.
+        - 🗺️ **Interactive Travel Map**: Open [🌍 World Explorer](pages/4_🌍_World_Explorer.py) to view city markers, multi-crew explorer filters, and beverage views.
+        - 🔒 **Location Privacy Controls**: Instant toggle in [⚙️ Settings](pages/99_⚙️_Settings.py) to control whether your live feed broadcasts your city/country.
         """)
-        
-        pin_col1, pin_col2 = st.columns([1, 2])
-        with pin_col1:
-            desired_pin = st.text_input(
-                f"Enter secret PIN for **{selected_user}**:", 
-                type="password", 
-                placeholder="4-6 digits or secret word",
-                key="launch_pin_input"
-            )
-        
-        with pin_col2:
-            if desired_pin:
-                import hashlib
-                pin_hash = hashlib.sha256(desired_pin.encode()).hexdigest()
-                st.markdown(f"**Generated SHA-256 Hash for `{selected_user}`:**")
-                st.code(f'{selected_user} = "{pin_hash}"', language="toml")
-                st.caption("📋 *Copy the line above and send it to the admin (or add it directly to `.streamlit/secrets.toml` under `[pins]`)*")
-            else:
-                st.info("💡 Type a PIN on the left to instantly generate your copyable SHA-256 security hash.")
-        
-        st.caption("📢 *This release briefing and PIN helper will remain pinned to the landing page for the next 7 days.*")
+    with pn2:
+        st.markdown("""
+        #### 🎨 **UI 2.0 & Dynamic Morphism**
+        - ✨ **Dynamic Morphism Engine**: Switch between **Modern Flat**, **Glassmorphism**, and **Neumorphism** styles!
+        - 🛍️ **Theme Boutique**: 8 handcrafted color palettes (*Latte, Espresso, Matcha, Caramel Macchiato, Strawberry Frappé, Taro Boba, Midnight Cyber Brew, Velvet Mocha*) in [🎨 Theme Boutique](pages/3_🎨_Theme_Shop.py).
+        - ⚡ **Synchronized Activity Feed**: Pure `clicks` source of truth updating instantly upon beverage logging or modifications.
+        """)
+    with pn3:
+        st.markdown("""
+        #### 🏆 **Achievements & Dynasty Hall of Fame**
+        - 🎖️ **13 Progressive Mastery Tracks**: Featuring *World Explorer*, *Metropolis Explorer*, *Espresso Mastery*, *Zen Tea Garden*, *Sub-Zero Frost*, *Streak Sovereign*, and more.
+        - ⬆️ **Tier Upgrade Celebrations**: Live modal alerts comparing previous vs newly unlocked tiers with 1-tap emoji badge equipping!
+        - 👑 **Dynasty Hall of Fame**: Direct in-place rankings on all 13 cards in [🏆 Trophy Room](pages/2_🏆_Trophy_Room.py) with lifetime +250 🪙 crown rewards.
+        - 🕵️ **Arcane Secret Feats**: Concealed easter eggs and cryptic riddles hidden in Tab 3!
+        """)
 
 # Calculate today's stats
 today_coffees = 0
