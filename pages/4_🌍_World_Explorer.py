@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-from feature_flags import is_unlocked, is_dev_mode, get_countdown_text
 from world_data import (
     TRAVEL_COUNTRIES, 
     DEFAULT_COUNTRY, 
@@ -29,12 +28,6 @@ st.set_page_config(page_title="World Explorer", page_icon="🌍", layout="wide")
 
 users = ["Cris", "Bea", "Fer"]
 selected_user = enforce_user_identity(users)
-
-# 2. Guard Pattern
-if not is_unlocked("world_update"):
-    st.markdown(f"### {get_countdown_text('world_update')}")
-    st.info("The 🌍 **World Update** is scheduled to unlock **Tonight at Midnight (00:00 Madrid Time)**!")
-    st.stop()
 
 # 3. Data Loading & Styling
 data = get_data()

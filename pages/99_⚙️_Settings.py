@@ -15,7 +15,6 @@ from world_data import (
     normalize_city_name,
     get_flag_img_html
 )
-from feature_flags import is_unlocked
 from components.ui import inject_custom_css, render_app_header
 
 st.set_page_config(page_title="Settings", page_icon="⚙️", layout="wide")
@@ -144,9 +143,8 @@ with st.container(border=True):
         st.success("Profile saved! Refreshing...")
         st.rerun()
 
-if is_unlocked("world_update"):
-    st.header("🌍 Location Settings")
-    with st.container(border=True):
+st.header("🌍 Location Settings")
+with st.container(border=True):
         st.markdown("### 🌍 Home Base Location")
         st.caption("Your default physical location for drink logs and home passport registry.")
         

@@ -70,7 +70,7 @@ def is_dev_mode(user: str = None) -> bool:
 
 def is_unlocked(feature_key: str, dev_bypass: bool = False) -> bool:
     """Check if a feature is unlocked based on date/timezone or dev bypass."""
-    if dev_bypass:
+    if dev_bypass or feature_key == "world_update":
         return True
     drop = FEATURE_DROPS.get(feature_key)
     if not drop:

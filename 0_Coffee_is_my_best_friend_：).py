@@ -61,9 +61,8 @@ user_style = prefs.get(selected_user, {}).get("ui_style", "Modern Flat")
 # Inject Active Theme & CSS (with surprise sidebar concealment for non-devs)
 inject_custom_css(user_theme, user_style, user=selected_user)
 
-# Check and render any pending celebration popup dialogs (only active once Drop 1 unlocks)
-if is_unlocked("world_update"):
-    trigger_celebration_popup_if_pending(selected_user)
+# Check and render any pending celebration popup dialogs
+trigger_celebration_popup_if_pending(selected_user)
 
 trophies = get_gamification_metrics(df_coffee, df_tea, users)
 coin_balances = get_coin_balances(df, transactions, users)
@@ -86,46 +85,8 @@ render_app_header(
 # --- 1.1 Standalone Daily Trivia Quote (Outside the header box) ---
 render_daily_fact_quote()
 
-# --- Time Context (with simulation support) ---
-now = get_current_madrid_time() if df.empty else get_current_madrid_time()
-unlock_time = pd.Timestamp("2026-08-15 00:00:00", tz="Europe/Madrid")
-
-# --- 🚀 BIG HYPE COUNTDOWN CLOCK TO TONIGHT AT 00:00 ---
-if now < unlock_time:
-    delta = unlock_time - now
-    total_secs = max(0, int(delta.total_seconds()))
-    h = total_secs // 3600
-    m = (total_secs % 3600) // 60
-    s = total_secs % 60
-    
-    st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%); padding: 26px 20px; border-radius: 18px; color: white; text-align: center; box-shadow: 0 10px 30px rgba(49, 46, 129, 0.35); margin-bottom: 22px; border: 1px solid rgba(165, 180, 252, 0.3);">
-        <div style="font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 2.5px; color: #a5b4fc; margin-bottom: 6px;">🚀 MAJOR UPDATE INCOMING &bull; DROP 1</div>
-        <div style="font-size: 26px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 6px;">🌍 World Explorer & UI 2.0 Drops Tonight at Midnight! ✨</div>
-        <div style="font-size: 14px; color: #e0e7ff; margin-bottom: 18px;">Get HYPED! Stamped city passports, dynamic travel maps, 13 achievement tracks, and dynasty Hall of Fame arrive in:</div>
-        <div style="display: flex; justify-content: center; align-items: center; gap: 14px; margin: 12px 0 16px 0;">
-            <div style="background: rgba(255,255,255,0.12); backdrop-filter: blur(10px); padding: 14px 22px; border-radius: 14px; min-width: 90px; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                <div style="font-size: 38px; font-weight: 900; line-height: 1; font-family: 'Courier New', monospace; color: #fde047; text-shadow: 0 0 15px rgba(253, 224, 71, 0.5);">{h:02d}</div>
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #c7d2fe; margin-top: 6px;">Hours</div>
-            </div>
-            <div style="font-size: 34px; font-weight: 900; color: #a5b4fc; margin-top: -14px;">:</div>
-            <div style="background: rgba(255,255,255,0.12); backdrop-filter: blur(10px); padding: 14px 22px; border-radius: 14px; min-width: 90px; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                <div style="font-size: 38px; font-weight: 900; line-height: 1; font-family: 'Courier New', monospace; color: #fde047; text-shadow: 0 0 15px rgba(253, 224, 71, 0.5);">{m:02d}</div>
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #c7d2fe; margin-top: 6px;">Minutes</div>
-            </div>
-            <div style="font-size: 34px; font-weight: 900; color: #a5b4fc; margin-top: -14px;">:</div>
-            <div style="background: rgba(255,255,255,0.12); backdrop-filter: blur(10px); padding: 14px 22px; border-radius: 14px; min-width: 90px; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                <div style="font-size: 38px; font-weight: 900; line-height: 1; font-family: 'Courier New', monospace; color: #fde047; text-shadow: 0 0 15px rgba(253, 224, 71, 0.5);">{s:02d}</div>
-                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #c7d2fe; margin-top: 6px;">Seconds</div>
-            </div>
-        </div>
-        <div style="font-size: 13px; color: #c7d2fe;">⏰ Launch Target: <b>Tonight at 00:00:00 CEST (Aug 15, Madrid Time)</b></div>
-    </div>
-    """, unsafe_allow_html=True)
-
 # --- 📜 COMPREHENSIVE DROP 1 & UI 2.0 PATCH NOTES ---
-patch_expander_title = "🌍 **Drop 1 Patch Notes — World Explorer & UI 2.0 Major Update (Preview Details)**" if now < unlock_time else "🎉 **Drop 1 Patch Notes — World Explorer & UI 2.0 is LIVE! (Tap to expand)**"
-with st.expander(patch_expander_title, expanded=True):
+with st.expander("🎉 **Drop 1 Patch Notes — World Explorer & UI 2.0 (Tap to expand)**", expanded=False):
     pn1, pn2, pn3 = st.columns(3)
     with pn1:
         st.markdown("""
@@ -195,26 +156,21 @@ def handle_drink_log(drink_id, drink_name, temp_name, country_code, city_name):
         # 0. Capture Before Snapshot for celebration detection
         before_snapshot = get_user_achievement_snapshot(selected_user, df_coffee, df_tea, transactions, users)
 
-        # 1. Insert Click Record (location is strictly null before Drop 1 unlocks)
-        log_country = country_code if is_unlocked("world_update") else None
-        log_city = city_name if is_unlocked("world_update") else None
-        insert_click(selected_user, 1, drink_id, country=log_country, city=log_city)
+        # 1. Insert Click Record with location columns
+        insert_click(selected_user, 1, drink_id, country=country_code, city=city_name)
         
-        # 2. Insert Coin Transaction with explicit temperature metadata
-        tx_meta = {
-            "drink": drink_name.lower(), 
-            "temperature": temp_name.lower(), 
-            "drink_id": drink_id,
-        }
-        if is_unlocked("world_update") and country_code:
-            tx_meta["country"] = country_code
-            tx_meta["city"] = city_name
-            
+        # 2. Insert Coin Transaction with explicit temperature, country, and city metadata
         insert_transaction(
             selected_user, 
             10, 
             "drink_log", 
-            tx_meta
+            {
+                "drink": drink_name.lower(), 
+                "temperature": temp_name.lower(), 
+                "drink_id": drink_id,
+                "country": country_code,
+                "city": city_name
+            }
         )
 
         # 3. Capture After Snapshot & Detect Unlocks
@@ -223,46 +179,41 @@ def handle_drink_log(drink_id, drink_name, temp_name, country_code, city_name):
         fresh_df, fresh_coffee, fresh_tea, _, _ = process_raw_data(fresh_data, users)
         after_snapshot = get_user_achievement_snapshot(selected_user, fresh_coffee, fresh_tea, fresh_tx, users)
 
-        new_unlocks = []
-        if is_unlocked("world_update"):
-            new_unlocks = compute_new_unlocks(
-                selected_user, 
-                before_snapshot, 
-                after_snapshot, 
-                transactions=fresh_tx
-            )
+        new_unlocks = compute_new_unlocks(
+            selected_user, 
+            before_snapshot, 
+            after_snapshot, 
+            transactions=fresh_tx
+        )
 
-            # Automatic first-time Welcome to UI 2.0 celebration & feature tour trigger on first drink logged in UI 2.0
-            user_seen_ui2 = prefs.get(selected_user, {}).get("has_seen_ui_2_0", False)
-            if not user_seen_ui2:
-                if new_unlocks is None:
-                    new_unlocks = []
-                new_unlocks.extend(get_ui_2_0_welcome_payload(selected_user))
-                save_user_preference(selected_user, {"has_seen_ui_2_0": True})
+        # Automatic first-time Welcome to UI 2.0 celebration & feature tour trigger on first drink logged in UI 2.0
+        user_seen_ui2 = prefs.get(selected_user, {}).get("has_seen_ui_2_0", False)
+        if not user_seen_ui2:
+            if new_unlocks is None:
+                new_unlocks = []
+            new_unlocks.extend(get_ui_2_0_welcome_payload(selected_user))
+            save_user_preference(selected_user, {"has_seen_ui_2_0": True})
 
-            if new_unlocks:
-                st.session_state["celebration_unlocks"] = new_unlocks
-                for item in new_unlocks:
-                    if item.get("reward_coins", 0) > 0:
-                        insert_transaction(
-                            selected_user, 
-                            item["reward_coins"], 
-                            "shop", 
-                            {
-                                "item": item.get("reward_item_key", f"reward_{item.get('title')}"), 
-                                "reward_unlock": item.get('title'),
-                                "monarch_crown": item.get("title") if item.get("type") == "monarch" else None
-                            }
-                        )
+        if new_unlocks:
+            st.session_state["celebration_unlocks"] = new_unlocks
+            for item in new_unlocks:
+                if item.get("reward_coins", 0) > 0:
+                    insert_transaction(
+                        selected_user, 
+                        item["reward_coins"], 
+                        "shop", 
+                        {
+                            "item": item.get("reward_item_key", f"reward_{item.get('title')}"), 
+                            "reward_unlock": item.get('title'),
+                            "monarch_crown": item.get("title") if item.get("type") == "monarch" else None
+                        }
+                    )
 
         if "tea" in drink_name.lower():
             st.snow()
         else:
             st.balloons()
-        if is_unlocked("world_update"):
-            st.success(f"**{temp_name} {drink_name} Logged in {city_name}, {get_option_from_code(country_code)}!** (+10 🪙)")
-        else:
-            st.success(f"**{temp_name} {drink_name} Logged!** (+10 🪙)")
+        st.success(f"**{temp_name} {drink_name} Logged in {city_name}, {get_option_from_code(country_code)}!** (+10 🪙)")
         time.sleep(1.0)
         st.rerun()
     except Exception as e:
@@ -274,50 +225,45 @@ st.subheader("⚡ Log Your Beverage")
 if "coffee_break" in active_perks.get(selected_user, []):
     st.error("🚫 You are on a mandatory Coffee Break! You cannot log drinks right now.")
 else:
-    # Default location variables
-    default_country_code = prefs.get(selected_user, {}).get("default_country", get_user_default_country(selected_user))
-    default_city = prefs.get(selected_user, {}).get("default_city", get_user_default_city(selected_user))
-    selected_country_code = default_country_code
-    selected_city = default_city
-
-    # --- LOCATION SELECTOR (Country & City) — ONLY VISIBLE ONCE DROP 1 UNLOCKS AT MIDNIGHT ---
-    if is_unlocked("world_update"):
-        loc_c1, loc_c2 = st.columns([1.1, 1])
-        with loc_c1:
-            default_option = get_option_from_code(default_country_code)
-            all_options = get_country_options()
+    # --- LOCATION SELECTOR (Country & City) ---
+    loc_c1, loc_c2 = st.columns([1.1, 1])
+    with loc_c1:
+        default_country_code = prefs.get(selected_user, {}).get("default_country", get_user_default_country(selected_user))
+        default_option = get_option_from_code(default_country_code)
+        all_options = get_country_options()
+        
+        selected_country_option = st.selectbox(
+            "🌍 Location (Country)", 
+            all_options, 
+            index=all_options.index(default_option) if default_option in all_options else 0,
+            key="beverage_log_country_select",
+            help="Choose the country where you are enjoying your brew."
+        )
+        selected_country_code = get_country_code_from_option(selected_country_option)
+        
+    with loc_c2:
+        default_city = prefs.get(selected_user, {}).get("default_city", get_user_default_city(selected_user))
+        available_cities = list(get_cities_for_country(selected_country_code))
+        if default_city and default_city not in available_cities and selected_country_code == default_country_code:
+            available_cities.insert(0, default_city)
+        available_cities.append("✍️ Custom City...")
+        
+        city_default_idx = available_cities.index(default_city) if default_city in available_cities else 0
+        selected_city_choice = st.selectbox(
+            "🏙️ City", 
+            available_cities, 
+            index=city_default_idx,
+            key=f"beverage_log_city_select_{selected_country_code}",
+            help="Choose or enter the city for this brew."
+        )
+        
+        if selected_city_choice == "✍️ Custom City...":
+            custom_city_input = st.text_input("Enter City Name:", placeholder="e.g. Oxford, Florence, Kyoto...")
+            selected_city = custom_city_input.strip() if custom_city_input.strip() else available_cities[0]
+        else:
+            selected_city = selected_city_choice
             
-            selected_country_option = st.selectbox(
-                "🌍 Location (Country)", 
-                all_options, 
-                index=all_options.index(default_option) if default_option in all_options else 0,
-                key="beverage_log_country_select",
-                help="Choose the country where you are enjoying your brew."
-            )
-            selected_country_code = get_country_code_from_option(selected_country_option)
-            
-        with loc_c2:
-            available_cities = list(get_cities_for_country(selected_country_code))
-            if default_city and default_city not in available_cities and selected_country_code == default_country_code:
-                available_cities.insert(0, default_city)
-            available_cities.append("✍️ Custom City...")
-            
-            city_default_idx = available_cities.index(default_city) if default_city in available_cities else 0
-            selected_city_choice = st.selectbox(
-                "🏙️ City", 
-                available_cities, 
-                index=city_default_idx,
-                key=f"beverage_log_city_select_{selected_country_code}",
-                help="Choose or enter the city for this brew."
-            )
-            
-            if selected_city_choice == "✍️ Custom City...":
-                custom_city_input = st.text_input("Enter City Name:", placeholder="e.g. Oxford, Florence, Kyoto...")
-                selected_city = custom_city_input.strip() if custom_city_input.strip() else available_cities[0]
-            else:
-                selected_city = selected_city_choice
-                
-        selected_city = normalize_city_name(selected_city)
+    selected_city = normalize_city_name(selected_city)
 
     b_col1, b_col2 = st.columns(2)
     
@@ -447,10 +393,10 @@ with feed_col:
                 if not c_city and "city" in row and pd.notna(row["city"]):
                     c_city = row["city"]
 
-                # Privacy Setting Check for User: share_live_location (defaults to True) — only shown once Drop 1 unlocks
+                # Privacy Setting Check for User: share_live_location (defaults to True)
                 user_share_loc = prefs.get(u, {}).get("share_live_location", True)
                 loc_html = ""
-                if is_unlocked("world_update") and user_share_loc and c_code:
+                if user_share_loc and c_code:
                     c_city_display = c_city or get_cities_for_country(c_code)[0]
                     c_info = TRAVEL_COUNTRIES.get(c_code, {})
                     c_name = c_info.get("name", c_code)
@@ -480,7 +426,6 @@ with nav_col:
             st.page_link("pages/1_📈_Graphs!_Graphs!_Graphs!.py", label="Analytics & Charts", icon="📈")
             st.page_link("pages/2_🏆_Trophy_Room.py", label="Trophies & Badges", icon="🏆")
         with n2:
-            if is_unlocked("world_update"):
-                st.page_link("pages/4_🌍_World_Explorer.py", label="World Explorer", icon="🌍")
+            st.page_link("pages/4_🌍_World_Explorer.py", label="World Explorer", icon="🌍")
             st.page_link("pages/3_🎨_Theme_Shop.py", label="Theme Boutique", icon="🎨")
             st.page_link("pages/99_⚙️_Settings.py", label="Settings", icon="⚙️")
