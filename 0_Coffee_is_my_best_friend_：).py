@@ -250,7 +250,10 @@ def handle_drink_log(drink_id, drink_name, temp_name, country_code, city_name):
             st.snow()
         else:
             st.balloons()
-        st.success(f"**{temp_name} {drink_name} Logged in {city_name}, {get_option_from_code(country_code)}!** (+10 🪙)")
+        if is_unlocked("world_update"):
+            st.success(f"**{temp_name} {drink_name} Logged in {city_name}, {get_option_from_code(country_code)}!** (+10 🪙)")
+        else:
+            st.success(f"**{temp_name} {drink_name} Logged!** (+10 🪙)")
         time.sleep(1.0)
         st.rerun()
     except Exception as e:
@@ -262,45 +265,50 @@ st.subheader("⚡ Log Your Beverage")
 if "coffee_break" in active_perks.get(selected_user, []):
     st.error("🚫 You are on a mandatory Coffee Break! You cannot log drinks right now.")
 else:
-    # --- LOCATION SELECTOR (Country & City) ---
-    loc_c1, loc_c2 = st.columns([1.1, 1])
-    with loc_c1:
-        default_country_code = prefs.get(selected_user, {}).get("default_country", get_user_default_country(selected_user))
-        default_option = get_option_from_code(default_country_code)
-        all_options = get_country_options()
-        
-        selected_country_option = st.selectbox(
-            "🌍 Location (Country)", 
-            all_options, 
-            index=all_options.index(default_option) if default_option in all_options else 0,
-            key="beverage_log_country_select",
-            help="Choose the country where you are enjoying your brew."
-        )
-        selected_country_code = get_country_code_from_option(selected_country_option)
-        
-    with loc_c2:
-        default_city = prefs.get(selected_user, {}).get("default_city", get_user_default_city(selected_user))
-        available_cities = list(get_cities_for_country(selected_country_code))
-        if default_city and default_city not in available_cities and selected_country_code == default_country_code:
-            available_cities.insert(0, default_city)
-        available_cities.append("✍️ Custom City...")
-        
-        city_default_idx = available_cities.index(default_city) if default_city in available_cities else 0
-        selected_city_choice = st.selectbox(
-            "🏙️ City", 
-            available_cities, 
-            index=city_default_idx,
-            key=f"beverage_log_city_select_{selected_country_code}",
-            help="Choose or enter the city for this brew."
-        )
-        
-        if selected_city_choice == "✍️ Custom City...":
-            custom_city_input = st.text_input("Enter City Name:", placeholder="e.g. Oxford, Florence, Kyoto...")
-            selected_city = custom_city_input.strip() if custom_city_input.strip() else available_cities[0]
-        else:
-            selected_city = selected_city_choice
+    # Default location variables
+    default_country_code = prefs.get(selected_user, {}).get("default_country", get_user_default_country(selected_user))
+    default_city = prefs.get(selected_user, {}).get("default_city", get_user_default_city(selected_user))
+    selected_country_code = default_country_code
+    selected_city = default_city
+
+    # --- LOCATION SELECTOR (Country & City) — ONLY VISIBLE ONCE DROP 1 UNLOCKS AT MIDNIGHT ---
+    if is_unlocked("world_update"):
+        loc_c1, loc_c2 = st.columns([1.1, 1])
+        with loc_c1:
+            default_option = get_option_from_code(default_country_code)
+            all_options = get_country_options()
             
-    selected_city = normalize_city_name(selected_city)
+            selected_country_option = st.selectbox(
+                "🌍 Location (Country)", 
+                all_options, 
+                index=all_options.index(default_option) if default_option in all_options else 0,
+                key="beverage_log_country_select",
+                help="Choose the country where you are enjoying your brew."
+            )
+            selected_country_code = get_country_code_from_option(selected_country_option)
+            
+        with loc_c2:
+            available_cities = list(get_cities_for_country(selected_country_code))
+            if default_city and default_city not in available_cities and selected_country_code == default_country_code:
+                available_cities.insert(0, default_city)
+            available_cities.append("✍️ Custom City...")
+            
+            city_default_idx = available_cities.index(default_city) if default_city in available_cities else 0
+            selected_city_choice = st.selectbox(
+                "🏙️ City", 
+                available_cities, 
+                index=city_default_idx,
+                key=f"beverage_log_city_select_{selected_country_code}",
+                help="Choose or enter the city for this brew."
+            )
+            
+            if selected_city_choice == "✍️ Custom City...":
+                custom_city_input = st.text_input("Enter City Name:", placeholder="e.g. Oxford, Florence, Kyoto...")
+                selected_city = custom_city_input.strip() if custom_city_input.strip() else available_cities[0]
+            else:
+                selected_city = selected_city_choice
+                
+        selected_city = normalize_city_name(selected_city)
 
     b_col1, b_col2 = st.columns(2)
     
@@ -430,10 +438,10 @@ with feed_col:
                 if not c_city and "city" in row and pd.notna(row["city"]):
                     c_city = row["city"]
 
-                # Privacy Setting Check for User: share_live_location (defaults to True)
+                # Privacy Setting Check for User: share_live_location (defaults to True) — only shown once Drop 1 unlocks
                 user_share_loc = prefs.get(u, {}).get("share_live_location", True)
                 loc_html = ""
-                if user_share_loc and c_code:
+                if is_unlocked("world_update") and user_share_loc and c_code:
                     c_city_display = c_city or get_cities_for_country(c_code)[0]
                     c_info = TRAVEL_COUNTRIES.get(c_code, {})
                     c_name = c_info.get("name", c_code)
