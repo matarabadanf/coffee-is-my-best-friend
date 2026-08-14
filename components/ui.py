@@ -78,7 +78,6 @@ def inject_custom_css(theme="Latte (Light)", ui_style="Modern Flat", user=None, 
         locked_sidebar_css = get_locked_sidebar_css(user)
     except Exception:
         locked_sidebar_css = ""
-
     # 1. Sanitize inputs
     if theme not in ALL_THEMES:
         theme = "Latte (Light)"
