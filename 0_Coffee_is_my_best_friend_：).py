@@ -25,7 +25,10 @@ from components.ui import (
 from components.celebrations import (
     get_user_achievement_snapshot, 
     compute_new_unlocks, 
-    trigger_celebration_popup_if_pending
+    trigger_celebration_popup_if_pending,
+    get_dev_test_payload,
+    get_tier_upgrade_test_payload,
+    get_ui_2_0_welcome_payload
 )
 
 # 1. Page Configuration
@@ -192,7 +195,13 @@ def handle_drink_log(drink_id, drink_name, temp_name):
 
         # Developer preview test trigger for Fer (to preview modal, animations, and title equipping)
         is_dev_test = bool(selected_user == "Fer")
-        new_unlocks = compute_new_unlocks(selected_user, before_snapshot, after_snapshot, is_dev_test=is_dev_test)
+        new_unlocks = compute_new_unlocks(
+            selected_user, 
+            before_snapshot, 
+            after_snapshot, 
+            is_dev_test=is_dev_test, 
+            transactions=fresh_tx
+        )
 
         if new_unlocks:
             st.session_state["celebration_unlocks"] = new_unlocks
@@ -202,7 +211,11 @@ def handle_drink_log(drink_id, drink_name, temp_name):
                         selected_user, 
                         item["reward_coins"], 
                         "shop", 
-                        {"item": f"reward_{item.get('title')}", "reward_unlock": item.get('title')}
+                        {
+                            "item": item.get("reward_item_key", f"reward_{item.get('title')}"), 
+                            "reward_unlock": item.get('title'),
+                            "monarch_week": item.get("monarch_week")
+                        }
                     )
 
         if "tea" in drink_name.lower():
@@ -251,13 +264,23 @@ else:
                 if st.button("🧊 Iced Tea", key="btn_iced_tea", use_container_width=True):
                     handle_drink_log(4, "Tea", "Iced")
 
-    # Developer Preview Sandbox Trigger for Fer
+    # Developer Preview Sandbox Triggers for Fer
     if selected_user == "Fer":
-        with st.expander("🛠️ Developer Sandbox: Test Unlock Celebration Popup", expanded=False):
-            st.caption("Trigger a simulated level up & achievement popup to preview the celebratory UI, animations, bonus coin grants, and 1-tap badge equipping.")
-            if st.button("🧪 Test-Fire Level Up Modal", key="dev_test_modal_btn", use_container_width=True):
-                st.session_state["celebration_unlocks"] = compute_new_unlocks("Fer", {"tiers": set(), "secrets": set(), "crowns": set()}, {"tiers": set(), "secrets": set(), "crowns": set()}, is_dev_test=True)
-                st.rerun()
+        with st.expander("🛠️ Developer Sandbox: Test Celebrations, Upgrades & UI 2.0 Tour", expanded=False):
+            st.caption("Trigger simulated unlock flows to test animations, tier upgrades, UI 2.0 tours, coin limits, and 1-tap badge equipping.")
+            s_btn1, s_btn2, s_btn3 = st.columns(3)
+            with s_btn1:
+                if st.button("🧪 Basic Unlock Modal", key="dev_test_modal_btn", use_container_width=True):
+                    st.session_state["celebration_unlocks"] = get_dev_test_payload("Fer")
+                    st.rerun()
+            with s_btn2:
+                if st.button("🎖️ Tier Upgrade Modal", key="dev_test_upgrade_btn", use_container_width=True):
+                    st.session_state["celebration_unlocks"] = get_tier_upgrade_test_payload("Fer")
+                    st.rerun()
+            with s_btn3:
+                if st.button("🌟 Welcome to UI 2.0 Tour", key="dev_test_ui2_btn", use_container_width=True):
+                    st.session_state["celebration_unlocks"] = get_ui_2_0_welcome_payload("Fer")
+                    st.rerun()
 
 st.divider()
 
