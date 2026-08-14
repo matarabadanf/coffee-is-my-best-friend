@@ -606,18 +606,8 @@ def compute_passport_stats(
     def_country = default_country or (get_user_default_country(user) if not is_all_users else DEFAULT_COUNTRY)
     def_city = default_city or (get_user_default_city(user) if not is_all_users else "Madrid")
 
-    # Reconcile with clicks_data if provided (so deleted clicks are purged from location stats)
+    # Clicks table is the direct, primary source of truth for travel & map
     valid_txs = []
-    if transactions is not None:
-        if isinstance(transactions, pd.DataFrame):
-            transactions_list = transactions.to_dict('records')
-        elif isinstance(transactions, list):
-            transactions_list = transactions
-        else:
-            transactions_list = []
-    else:
-        transactions_list = []
-
     if clicks_data is not None:
         if isinstance(clicks_data, pd.DataFrame):
             clicks_list = clicks_data.to_dict('records')
@@ -625,63 +615,51 @@ def compute_passport_stats(
             clicks_list = clicks_data
         else:
             clicks_list = []
-    else:
-        clicks_list = None
+            
+        # Build tx lookup map by (user, created_at) if transactions provided as fallback
+        tx_lookup = {}
+        if transactions is not None:
+            tx_list = transactions.to_dict('records') if isinstance(transactions, pd.DataFrame) else (transactions if isinstance(transactions, list) else [])
+            for t in tx_list:
+                if t.get("transaction_type") == "drink_log":
+                    t_user = t.get("user_name")
+                    t_time = str(t.get("created_at", ""))
+                    tx_lookup[(t_user, t_time)] = t.get("metadata", {})
 
-    if transactions_list:
-        all_drink_txs = [t for t in transactions_list if t.get("transaction_type") == "drink_log"]
-        if clicks_list is not None:
-            click_user_counts: dict[str, int] = {}
-            for c in clicks_list:
+        for c in clicks_list:
+            loc = c.get("location")
+            c_country = None
+            c_city = None
+            if isinstance(loc, dict) and loc.get("country"):
+                c_country = loc.get("country")
+                c_city = loc.get("city")
+            elif c.get("country"):
+                c_country = c.get("country")
+                c_city = c.get("city")
+            else:
                 c_user = c.get("user_name")
-                click_user_counts[c_user] = click_user_counts.get(c_user, 0) + 1
-
-            txs_by_user: dict[str, list[dict]] = {}
-            for tx in all_drink_txs:
-                tx_u = tx.get("user_name")
-                if tx_u not in txs_by_user:
-                    txs_by_user[tx_u] = []
-                txs_by_user[tx_u].append(tx)
+                c_time = str(c.get("created_at", ""))
+                meta = tx_lookup.get((c_user, c_time), {})
+                c_country = meta.get("country")
+                c_city = meta.get("city")
                 
-            for tx_u, u_tx_list in txs_by_user.items():
-                max_allowed = click_user_counts.get(tx_u, 0)
-                sorted_u_txs = sorted(u_tx_list, key=lambda x: str(x.get("created_at", "")), reverse=True)[:max_allowed]
-                valid_txs.extend(sorted_u_txs)
+            valid_txs.append({
+                "user_name": c.get("user_name"),
+                "created_at": c.get("created_at"),
+                "metadata": {
+                    "country": c_country,
+                    "city": c_city,
+                    "drink_id": c.get("drink_id", 1)
+                }
+            })
+    elif transactions is not None:
+        if isinstance(transactions, pd.DataFrame):
+            transactions_list = transactions.to_dict('records')
+        elif isinstance(transactions, list):
+            transactions_list = transactions
         else:
-            valid_txs = all_drink_txs
-
-    # Incorporate direct location from clicks_data if location JSON or country/city columns exist in clicks table
-    if clicks_list:
-        has_direct_loc_clicks = any(
-            (isinstance(c.get("location"), dict) and c["location"].get("country")) or ("country" in c and c["country"]) 
-            for c in clicks_list
-        )
-        if has_direct_loc_clicks:
-            direct_tx_format = []
-            for c in clicks_list:
-                loc = c.get("location")
-                if isinstance(loc, dict) and loc.get("country"):
-                    direct_tx_format.append({
-                        "user_name": c.get("user_name"),
-                        "created_at": c.get("created_at"),
-                        "metadata": {
-                            "country": loc.get("country"),
-                            "city": loc.get("city"),
-                            "drink_id": c.get("drink_id", 1)
-                        }
-                    })
-                elif c.get("country"):
-                    direct_tx_format.append({
-                        "user_name": c.get("user_name"),
-                        "created_at": c.get("created_at"),
-                        "metadata": {
-                            "country": c.get("country"),
-                            "city": c.get("city"),
-                            "drink_id": c.get("drink_id", 1)
-                        }
-                    })
-            if direct_tx_format:
-                valid_txs = direct_tx_format
+            transactions_list = []
+        valid_txs = [t for t in transactions_list if t.get("transaction_type") == "drink_log"]
 
     for tx in valid_txs:
         tx_user = tx.get("user_name")
@@ -771,17 +749,25 @@ def compute_passport_stats(
         "diversity_score": diversity_score
     }
 
-def get_travel_leaderboard(transactions: list[dict], users: list[str], clicks_data: list[dict] = None) -> list[dict]:
+def get_travel_leaderboard(transactions: list[dict] = None, users: list[str] = None, clicks_data: list[dict] = None) -> list[dict]:
     """Returns sorted list of travel stats including unique cities for leaderboard."""
+    if users is None:
+        users = ["Cris", "Bea", "Fer"]
     leaderboard = []
     
     from data_processing import get_user_preferences
-    prefs = get_user_preferences(transactions, users)
+    prefs = get_user_preferences(transactions or [], users)
     
     for u in users:
         u_def_country = prefs.get(u, {}).get("default_country", get_user_default_country(u))
         u_def_city = prefs.get(u, {}).get("default_city", get_user_default_city(u))
-        stats = compute_passport_stats(transactions or [], u, u_def_country, u_def_city)
+        stats = compute_passport_stats(
+            transactions=transactions, 
+            user=u, 
+            default_country=u_def_country, 
+            default_city=u_def_city,
+            clicks_data=clicks_data
+        )
         leaderboard.append({
             "user": u,
             "cities": len(stats["cities_visited"]),
