@@ -608,11 +608,31 @@ def compute_passport_stats(
 
     # Reconcile with clicks_data if provided (so deleted clicks are purged from location stats)
     valid_txs = []
-    if transactions:
-        all_drink_txs = [t for t in transactions if t.get("transaction_type") == "drink_log"]
-        if clicks_data is not None:
+    if transactions is not None:
+        if isinstance(transactions, pd.DataFrame):
+            transactions_list = transactions.to_dict('records')
+        elif isinstance(transactions, list):
+            transactions_list = transactions
+        else:
+            transactions_list = []
+    else:
+        transactions_list = []
+
+    if clicks_data is not None:
+        if isinstance(clicks_data, pd.DataFrame):
+            clicks_list = clicks_data.to_dict('records')
+        elif isinstance(clicks_data, list):
+            clicks_list = clicks_data
+        else:
+            clicks_list = []
+    else:
+        clicks_list = None
+
+    if transactions_list:
+        all_drink_txs = [t for t in transactions_list if t.get("transaction_type") == "drink_log"]
+        if clicks_list is not None:
             click_user_counts: dict[str, int] = {}
-            for c in clicks_data:
+            for c in clicks_list:
                 c_user = c.get("user_name")
                 click_user_counts[c_user] = click_user_counts.get(c_user, 0) + 1
 
@@ -631,14 +651,14 @@ def compute_passport_stats(
             valid_txs = all_drink_txs
 
     # Incorporate direct location from clicks_data if location JSON or country/city columns exist in clicks table
-    if clicks_data:
+    if clicks_list:
         has_direct_loc_clicks = any(
             (isinstance(c.get("location"), dict) and c["location"].get("country")) or ("country" in c and c["country"]) 
-            for c in clicks_data
+            for c in clicks_list
         )
         if has_direct_loc_clicks:
             direct_tx_format = []
-            for c in clicks_data:
+            for c in clicks_list:
                 loc = c.get("location")
                 if isinstance(loc, dict) and loc.get("country"):
                     direct_tx_format.append({
