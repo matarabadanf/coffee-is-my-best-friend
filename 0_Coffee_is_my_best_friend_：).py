@@ -365,7 +365,11 @@ def handle_drink_log(drink_id, drink_name, temp_name, country_code, city_name):
         else:
             st.balloons()
         if is_unlocked("world_update"):
-            st.success(f"**{temp_name} {drink_name} Logged in {city_name}, {get_option_from_code(country_code)}!** (+10 🪙)")
+            if country_code == "PLANE":
+                flight_disp = f" ({city_name})" if city_name else ""
+                st.success(f"**{temp_name} {drink_name} Logged at 30,000 ft in flight ✈️☁️{flight_disp}!** (+10 🪙)")
+            else:
+                st.success(f"**{temp_name} {drink_name} Logged in {city_name}, {get_option_from_code(country_code)}!** (+10 🪙)")
         else:
             st.success(f"**{temp_name} {drink_name} Logged!** (+10 🪙)")
         time.sleep(1.0)
@@ -402,22 +406,24 @@ else:
             selected_country_code = get_country_code_from_option(selected_country_option)
             
         with loc_c2:
+            city_label = "✈️ Altitude / Flight Status" if selected_country_code == "PLANE" else "🏙️ City"
             available_cities = list(get_cities_for_country(selected_country_code))
             if default_city and default_city not in available_cities and selected_country_code == default_country_code:
                 available_cities.insert(0, default_city)
-            available_cities.append("✍️ Custom City...")
+            available_cities.append("✍️ Custom Flight / City..." if selected_country_code == "PLANE" else "✍️ Custom City...")
             
             city_default_idx = available_cities.index(default_city) if default_city in available_cities else 0
             selected_city_choice = st.selectbox(
-                "🏙️ City", 
+                city_label, 
                 available_cities, 
                 index=city_default_idx,
                 key=f"beverage_log_city_select_{selected_country_code}",
-                help="Choose or enter the city for this brew."
+                help="Choose or enter the location/altitude for this brew."
             )
             
-            if selected_city_choice == "✍️ Custom City...":
-                custom_city_input = st.text_input("Enter City Name:", placeholder="e.g. Oxford, Florence, Kyoto...")
+            if selected_city_choice.startswith("✍️"):
+                custom_placeholder = "e.g. Flight MAD -> AMS, Cloud Nine..." if selected_country_code == "PLANE" else "e.g. Oxford, Florence, Kyoto..."
+                custom_city_input = st.text_input("Enter Location / Flight Detail:", placeholder=custom_placeholder)
                 selected_city = custom_city_input.strip() if custom_city_input.strip() else available_cities[0]
             else:
                 selected_city = selected_city_choice
@@ -556,10 +562,14 @@ with feed_col:
                 user_share_loc = prefs.get(u, {}).get("share_live_location", True)
                 loc_html = ""
                 if is_unlocked("world_update") and user_share_loc and c_code:
-                    c_city_display = c_city or get_cities_for_country(c_code)[0]
-                    c_info = TRAVEL_COUNTRIES.get(c_code, {})
-                    c_name = c_info.get("name", c_code)
-                    loc_html = f" in **{c_city_display}, {c_name}** {get_flag_img_html(c_code, 16, 12)}"
+                    if str(c_code).upper() in ["PLANE", "FLIGHT", "TRANSIT"]:
+                        flight_detail = c_city or "Cruising Altitude (30,000 ft)"
+                        loc_html = f" ✈️ **In Flight ({flight_detail})**"
+                    else:
+                        c_city_display = c_city or get_cities_for_country(c_code)[0]
+                        c_info = TRAVEL_COUNTRIES.get(c_code, {})
+                        c_name = c_info.get("name", c_code)
+                        loc_html = f" in **{c_city_display}, {c_name}** {get_flag_img_html(c_code, 16, 12)}"
                 
                 t = row["created_at"]
                 diff = now - t

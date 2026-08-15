@@ -527,6 +527,7 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None, achiev
             
             coffee_caps_count = sum(passport.get("city_counts", {}).get(k, 0) for k in passport.get("city_counts", {}) if is_coffee_capital(k[1]))
             user_secrets["coffee_capital"] = bool(len(passport.get("coffee_capitals_visited", set())) >= 2 or coffee_caps_count >= 3)
+            user_secrets["mile_high"] = bool(passport.get("in_flight_drinks", 0) >= 1)
         else:
             user_secrets["continent_hopper"] = False
             user_secrets["jet_lagged"] = False
@@ -534,6 +535,7 @@ def get_gamification_metrics(df_coffee, df_tea, users, transactions=None, achiev
             user_secrets["capital_tour"] = False
             user_secrets["twin_cities"] = False
             user_secrets["coffee_capital"] = False
+            user_secrets["mile_high"] = False
             
         user_secrets["ui_2_0_pioneer"] = bool(not user_logs.empty)
 

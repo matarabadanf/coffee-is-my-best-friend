@@ -260,5 +260,11 @@ SECRET_FEATS = [
         "title": "☕ Coffee Capital Pilgrim",
         "desc": "Log 3+ drinks across world-renowned coffee metropolises.",
         "hint": "Drink where espresso legends were forged: Vienna, Rome, Seattle, Kyoto, Istanbul..."
+    },
+    {
+        "id": "mile_high",
+        "title": "✈️ Mile High Club",
+        "desc": "Enjoyed a brew at cruising altitude (30,000 ft in flight).",
+        "hint": "Caffeine in the clouds. Drink where gravity feels optional..."
     }
 ]

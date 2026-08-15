@@ -141,9 +141,32 @@ try:
         prefer_canvas=True
     )
 
-    def create_custom_icon(user_name, count=1, is_home=False, drink_filter="all"):
+    def create_custom_icon(user_name, count=1, is_home=False, drink_filter="all", drink_breakdown=None):
         color = USER_MAP_COLORS.get(user_name, "#663399")
-        symbol = "🏠" if is_home else ("🍵" if drink_filter == "tea" else "☕")
+        
+        # Determine icon symbol: strictly tea 🍵 if tea only, coffee ☕ if coffee only, or majority
+        if drink_filter == "tea":
+            symbol = "🍵"
+        elif drink_filter == "coffee":
+            symbol = "☕"
+        elif drink_breakdown:
+            tea_cnt = drink_breakdown.get("tea", 0)
+            caff_cnt = drink_breakdown.get("coffee", 0)
+            if tea_cnt > 0 and caff_cnt == 0:
+                symbol = "🍵"
+            elif caff_cnt > 0 and tea_cnt == 0:
+                symbol = "☕"
+            elif tea_cnt > caff_cnt:
+                symbol = "🍵"
+            elif caff_cnt > tea_cnt:
+                symbol = "☕"
+            else:
+                symbol = "🏠" if is_home else "☕"
+        elif is_home:
+            symbol = "🏠"
+        else:
+            symbol = "☕"
+
         html = f"""
         <div style="
             background-color: {color};
@@ -201,6 +224,21 @@ try:
                 pin_lat = base_lat + offset_lat
                 pin_lon = base_lon + offset_lon
                 
+                u_breakdown = passport.get("city_user_drink_types", {}).get((c_code, c_city), {}).get(u_name, {"coffee": 0, "tea": 0})
+                c_cnt = u_breakdown.get("coffee", 0)
+                t_cnt = u_breakdown.get("tea", 0)
+                
+                if c_cnt > 0 and t_cnt > 0:
+                    drink_detail = f"<b>{c_cnt}</b> ☕ coffees &bull; <b>{t_cnt}</b> 🍵 teas"
+                    tooltip_detail = f"☕ {c_cnt} coffees, 🍵 {t_cnt} teas"
+                elif t_cnt > 0:
+                    drink_detail = f"<b>{t_cnt}</b> 🍵 {'tea' if t_cnt == 1 else 'teas'}"
+                    tooltip_detail = f"🍵 {t_cnt} teas"
+                else:
+                    tot = c_cnt or u_cnt
+                    drink_detail = f"<b>{tot}</b> ☕ {'coffee' if tot == 1 else 'coffees'}"
+                    tooltip_detail = f"☕ {tot} coffees"
+
                 u_color = USER_MAP_COLORS.get(u_name, "#663399")
                 popup_html = f"""
                 <div style="font-family: sans-serif; min-width: 180px;">
@@ -209,7 +247,7 @@ try:
                         <b>{u_name}</b>
                     </div>
                     <b>{c_city}, {c_info['name']} {c_info['flag']}</b><br/>
-                    <span>{'🏠 Home Base &bull; ' if is_home else '✈️ '}<b>{u_cnt}</b> {drink_type_filter.title() if drink_type_filter != 'all' else 'beverage'} drinks</span><br/>
+                    <span>{'🏠 Home Base &bull; ' if is_home else '✈️ '}{drink_detail}</span><br/>
                     <small style="color: #64748b;">{c_info['continent']}</small>
                 </div>
                 """
@@ -217,8 +255,8 @@ try:
                 folium.Marker(
                     location=[pin_lat, pin_lon],
                     popup=folium.Popup(popup_html, max_width=280),
-                    tooltip=f"{u_name} in {c_city}, {c_info['name']} ({u_cnt} drinks)",
-                    icon=create_custom_icon(u_name, count=u_cnt, is_home=is_home, drink_filter=drink_type_filter)
+                    tooltip=f"{u_name} in {c_city}, {c_info['name']} ({tooltip_detail})",
+                    icon=create_custom_icon(u_name, count=u_cnt, is_home=is_home, drink_filter=drink_type_filter, drink_breakdown=u_breakdown)
                 ).add_to(m)
     else:
         # Single User Mode
@@ -230,6 +268,21 @@ try:
             c_info = TRAVEL_COUNTRIES.get(c_code, {"name": c_code, "flag": "🏳️", "continent": "Global"})
             is_home = (c_code == u_home_country and c_city.lower() == u_home_city.lower())
             
+            u_breakdown = passport.get("city_drink_types", {}).get((c_code, c_city), {"coffee": 0, "tea": 0})
+            c_cnt = u_breakdown.get("coffee", 0)
+            t_cnt = u_breakdown.get("tea", 0)
+            
+            if c_cnt > 0 and t_cnt > 0:
+                drink_detail = f"<b>{c_cnt}</b> ☕ coffees &bull; <b>{t_cnt}</b> 🍵 teas"
+                tooltip_detail = f"☕ {c_cnt} coffees, 🍵 {t_cnt} teas"
+            elif t_cnt > 0:
+                drink_detail = f"<b>{t_cnt}</b> 🍵 {'tea' if t_cnt == 1 else 'teas'}"
+                tooltip_detail = f"🍵 {t_cnt} teas"
+            else:
+                tot = c_cnt or cnt
+                drink_detail = f"<b>{tot}</b> ☕ {'coffee' if tot == 1 else 'coffees'}"
+                tooltip_detail = f"☕ {tot} coffees"
+
             u_color = USER_MAP_COLORS.get(active_user_filter, "#663399")
             popup_html = f"""
             <div style="font-family: sans-serif; min-width: 180px;">
@@ -238,7 +291,7 @@ try:
                     <b>{active_user_filter}</b>
                 </div>
                 <b>{c_city}, {c_info['name']} {c_info['flag']}</b><br/>
-                <span>{'🏠 Home Base &bull; ' if is_home else '✈️ '}<b>{cnt}</b> {drink_type_filter.title() if drink_type_filter != 'all' else 'beverage'} drinks</span><br/>
+                <span>{'🏠 Home Base &bull; ' if is_home else '✈️ '}{drink_detail}</span><br/>
                 <small style="color: #64748b;">{c_info['continent']}</small>
             </div>
             """
@@ -246,8 +299,8 @@ try:
             folium.Marker(
                 location=[c_lat, c_lon],
                 popup=folium.Popup(popup_html, max_width=280),
-                tooltip=f"{active_user_filter} in {c_city}, {c_info['name']} ({cnt} drinks)",
-                icon=create_custom_icon(active_user_filter, count=cnt, is_home=is_home, drink_filter=drink_type_filter)
+                tooltip=f"{active_user_filter} in {c_city}, {c_info['name']} ({tooltip_detail})",
+                icon=create_custom_icon(active_user_filter, count=cnt, is_home=is_home, drink_filter=drink_type_filter, drink_breakdown=u_breakdown)
             ).add_to(m)
 
     st_folium(m, width="100%", height=450)
@@ -263,9 +316,10 @@ st.subheader("🛂 Passport Statistics")
 c1, c2, c3, c4 = st.columns(4)
 with c1:
     with st.container(border=True):
+        terrestrial_total = len([c for c in TRAVEL_COUNTRIES if c != "PLANE"])
         st.metric(
             "🗺️ Countries Visited", 
-            f"{len(passport['countries_visited'])} / {len(TRAVEL_COUNTRIES)}",
+            f"{len(passport['countries_visited'])} / {terrestrial_total}",
             delta=f"{len([c for c in passport['countries_visited'] if c != user_def_country])} Abroad"
         )
 with c2:
@@ -284,10 +338,12 @@ with c3:
         )
 with c4:
     with st.container(border=True):
+        in_flight_cnt = passport.get("in_flight_drinks", 0)
+        in_flight_txt = f" ({in_flight_cnt} ✈️ in flight)" if in_flight_cnt > 0 else ""
         st.metric(
             "✈️ Drinks Logged Abroad", 
             f"{passport['drinks_abroad']:,} Drinks",
-            delta="Outside Home Base"
+            delta=f"Outside Home Base{in_flight_txt}"
         )
 
 c5, c6 = st.columns(2)

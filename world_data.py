@@ -275,10 +275,12 @@ TRAVEL_COUNTRIES: dict[str, CountryInfo] = {
     "TV": {"name": "Tuvalu", "flag": "🇹🇻", "continent": "Oceania", "lat": -8.5375, "lon": 179.1962},
     "VU": {"name": "Vanuatu", "flag": "🇻🇺", "continent": "Oceania", "lat": -17.7333, "lon": 168.3273},
     "WS": {"name": "Samoa", "flag": "🇼🇸", "continent": "Oceania", "lat": -13.8333, "lon": -171.7667},
+    "PLANE": {"name": "In Flight (30,000 ft)", "flag": "✈️", "continent": "Stratosphere", "lat": 0.0, "lon": 0.0},
 }
 
 # ── Curated Cities Registry & Exact Coordinates ──
 POPULAR_CITIES: dict[str, list[str]] = {
+    "PLANE": ["Cruising Altitude (30,000 ft)", "Over the Clouds", "Transatlantic Flight", "In Transit", "Nowhere"],
     "NL": ["Amsterdam", "Rotterdam", "The Hague", "Utrecht", "Eindhoven", "Groningen", "Maastricht"],
     "FR": ["Paris", "Lyon", "Marseille", "Bordeaux", "Nice", "Toulouse", "Strasbourg", "Lille", "Nantes"],
     "CZ": ["Prague", "Brno", "Ostrava", "Plzen", "Liberec", "Olomouc", "Ceske Budejovice"],
@@ -461,24 +463,36 @@ FAMOUS_COFFEE_CITIES: set[str] = {
 }
 
 def get_country_options() -> list[str]:
-    """Returns formatted, alphabetically-sorted list for st.selectbox: ['🇦🇫 Afghanistan', '🇦🇱 Albania', ...]"""
-    sorted_items = sorted(TRAVEL_COUNTRIES.values(), key=lambda x: x["name"])
-    return [f"{c['flag']} {c['name']}" for c in sorted_items]
+    """Returns formatted list with '✈️ In Flight (30,000 ft)' at the top, followed by alphabetically-sorted countries."""
+    sorted_items = sorted([c for code, c in TRAVEL_COUNTRIES.items() if code != "PLANE"], key=lambda x: x["name"])
+    return ["✈️ In Flight (30,000 ft)"] + [f"{c['flag']} {c['name']}" for c in sorted_items]
 
 def get_country_code_from_option(option: str) -> str:
-    """Reverse-lookup: '🇪🇸 Spain' -> 'ES'"""
+    """Reverse-lookup: '🇪🇸 Spain' -> 'ES', '✈️ In Flight (30,000 ft)' -> 'PLANE'"""
+    if not option:
+        return DEFAULT_COUNTRY
+    if "In Flight" in option or "PLANE" in option:
+        return "PLANE"
     for code, info in TRAVEL_COUNTRIES.items():
         if f"{info['flag']} {info['name']}" == option:
             return code
     return DEFAULT_COUNTRY
 
 def get_option_from_code(code: str) -> str:
-    """Forward-lookup: 'ES' -> '🇪🇸 Spain'"""
-    info = TRAVEL_COUNTRIES.get(code, TRAVEL_COUNTRIES[DEFAULT_COUNTRY])
+    """Forward-lookup: 'ES' -> '🇪🇸 Spain', 'PLANE' -> '✈️ In Flight (30,000 ft)'"""
+    if not code:
+        return get_option_from_code(DEFAULT_COUNTRY)
+    if str(code).upper() in ["PLANE", "FLIGHT", "TRANSIT"]:
+        return "✈️ In Flight (30,000 ft)"
+    info = TRAVEL_COUNTRIES.get(code, TRAVEL_COUNTRIES.get(DEFAULT_COUNTRY, {"name": code, "flag": "🏳️"}))
     return f"{info['flag']} {info['name']}"
 
 def get_flag_img_html(code: str, width: int = 24, height: int = 18) -> str:
-    """Returns an HTML img tag from flagcdn for crisp flag visuals across all browsers."""
+    """Returns an HTML img tag from flagcdn for crisp flag visuals across all browsers, or an icon for in-flight/special."""
+    if not code:
+        return ""
+    if str(code).upper() in ["PLANE", "FLIGHT", "TRANSIT"]:
+        return '<span style="font-size: 14px; margin-right: 4px; vertical-align: middle;">✈️</span>'
     c = code.lower()
     return f'<img src="https://flagcdn.com/w40/{c}.png" width="{width}" height="{height}" style="vertical-align: -2px; margin-right: 6px; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.18);" alt="{code}"/>'
 
@@ -595,9 +609,12 @@ def compute_passport_stats(
     cities_visited = set()
     drinks_abroad = 0
     total_logged_with_location = 0
+    in_flight_drinks = 0
     country_counts: dict[str, int] = {}
     city_counts: dict[tuple[str, str], int] = {}
     city_users_breakdown: dict[tuple[str, str], dict[str, int]] = {}
+    city_drink_types: dict[tuple[str, str], dict[str, int]] = {}
+    city_user_drink_types: dict[tuple[str, str], dict[str, dict[str, int]]] = {}
     country_cities_map: dict[str, set[str]] = {}
     capital_cities_visited = set()
     coffee_capitals_visited = set()
@@ -673,6 +690,9 @@ def compute_passport_stats(
         # Beverage Type Filtering
         d_id = meta.get("drink_id")
         d_name = str(meta.get("drink", "")).lower()
+        is_tea = (d_id in [2, 4]) or ("tea" in d_name)
+        drink_cat = "tea" if is_tea else "coffee"
+
         if drink_type == "coffee":
             if d_id is not None and d_id not in [1, 3]:
                 continue
@@ -687,6 +707,12 @@ def compute_passport_stats(
         country_code = meta.get("country")
         city_name = meta.get("city") or (get_cities_for_country(country_code)[0] if country_code else None)
         
+        # Handle In-Flight / Airborne / Transit drinks
+        if country_code and str(country_code).upper() in ["PLANE", "FLIGHT", "TRANSIT"]:
+            in_flight_drinks += 1
+            total_logged_with_location += 1
+            continue
+
         if country_code and country_code in TRAVEL_COUNTRIES:
             norm_city = normalize_city_name(city_name)
             total_logged_with_location += 1
@@ -702,6 +728,17 @@ def compute_passport_stats(
                     city_users_breakdown[city_key] = {}
                 city_users_breakdown[city_key][tx_user] = city_users_breakdown[city_key].get(tx_user, 0) + 1
                 
+                # Detailed coffee vs tea breakdown per city and per user
+                if city_key not in city_drink_types:
+                    city_drink_types[city_key] = {"coffee": 0, "tea": 0}
+                city_drink_types[city_key][drink_cat] = city_drink_types[city_key].get(drink_cat, 0) + 1
+
+                if city_key not in city_user_drink_types:
+                    city_user_drink_types[city_key] = {}
+                if tx_user not in city_user_drink_types[city_key]:
+                    city_user_drink_types[city_key][tx_user] = {"coffee": 0, "tea": 0}
+                city_user_drink_types[city_key][tx_user][drink_cat] = city_user_drink_types[city_key][tx_user].get(drink_cat, 0) + 1
+
                 if country_code not in country_cities_map:
                     country_cities_map[country_code] = set()
                 country_cities_map[country_code].add(norm_city)
@@ -730,7 +767,8 @@ def compute_passport_stats(
         top_city_key = max(city_counts, key=city_counts.get)
         most_visited_city = (top_city_key, city_counts[top_city_key])
 
-    diversity_score = (len(countries_visited) / len(TRAVEL_COUNTRIES)) * 100 if TRAVEL_COUNTRIES else 0.0
+    terrestrial_countries = [c for c in TRAVEL_COUNTRIES if c != "PLANE"]
+    diversity_score = (len(countries_visited) / len(terrestrial_countries)) * 100 if terrestrial_countries else 0.0
 
     return {
         "countries_visited": countries_visited,
@@ -738,11 +776,14 @@ def compute_passport_stats(
         "cities_visited": cities_visited,
         "drinks_abroad": drinks_abroad,
         "total_logged_with_location": total_logged_with_location,
+        "in_flight_drinks": in_flight_drinks,
         "most_visited_foreign": most_visited_foreign,
         "most_visited_city": most_visited_city,
         "country_counts": country_counts,
         "city_counts": city_counts,
         "city_users_breakdown": city_users_breakdown,
+        "city_drink_types": city_drink_types,
+        "city_user_drink_types": city_user_drink_types,
         "country_cities_map": country_cities_map,
         "capital_cities_visited": capital_cities_visited,
         "coffee_capitals_visited": coffee_capitals_visited,
