@@ -109,8 +109,9 @@ passport = compute_passport_stats(
 
 # Subtitle banner
 if active_user_filter:
-    home_info = TRAVEL_COUNTRIES.get(user_def_country, TRAVEL_COUNTRIES.get(DEFAULT_COUNTRY))
-    st.info(f"Viewing **{active_user_filter}**'s Passport ({selected_beverage_option}) &bull; Home Base: {get_flag_img_html(user_def_country, 20, 14)} **{user_def_city}, {home_info['name']}**")
+    home_info = TRAVEL_COUNTRIES.get(user_def_country, TRAVEL_COUNTRIES.get(DEFAULT_COUNTRY, {"name": user_def_country, "flag": "🏳️"}))
+    home_flag = home_info.get("flag", "🏳️")
+    st.info(f"Viewing **{active_user_filter}**'s Passport ({selected_beverage_option}) &bull; Home Base: {home_flag} **{user_def_city}, {home_info['name']}**")
 else:
     st.info(f"Viewing **All Crew Combined** ({selected_beverage_option}) &bull; Explorers: **Cris** 🇨🇿, **Bea** 🇳🇱, **Fer** 🇫🇷")
 
