@@ -148,10 +148,9 @@ with st.container(border=True):
         st.markdown("### 🌍 Home Base Location")
         st.caption("Your default physical location for drink logs and home passport registry.")
         
-        default_country_code = prefs.get(selected_user, {}).get("default_country", get_user_default_country(selected_user))
-        default_city = prefs.get(selected_user, {}).get("default_city", get_user_default_city(selected_user))
-        
-        st.caption(f"Current Home Base: {get_flag_img_html(default_country_code, 20, 14)} **{default_city}, {TRAVEL_COUNTRIES.get(default_country_code, {}).get('name', default_country_code)}**", unsafe_allow_html=True)
+        country_info = TRAVEL_COUNTRIES.get(default_country_code, {"name": default_country_code, "flag": "🏳️"})
+        country_flag = country_info.get("flag", "🏳️")
+        st.caption(f"Current Home Base: {country_flag} **{default_city}, {country_info.get('name', default_country_code)}**")
         
         set_col1, set_col2 = st.columns(2)
         with set_col1:
