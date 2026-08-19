@@ -1,5 +1,7 @@
+import streamlit as st
 import pandas as pd
 
+@st.cache_data(show_spinner=False)
 def compute_monarch_hall_of_fame(df_coffee, df_tea, users, transactions=None):
     """
     Computes complete dynasty lineage and Hall of Fame for the 4 global monarch thrones:
@@ -175,6 +177,7 @@ def compute_monarch_hall_of_fame(df_coffee, df_tea, users, transactions=None):
         }
     }
 
+@st.cache_data(show_spinner=False)
 def compute_all_trophy_hall_of_fames(df_coffee, df_tea, users, transactions=None):
     """Computes full crew breakdowns and rankings across all milestone and style trophies."""
     combined = pd.concat([df_coffee, df_tea]) if not df_coffee.empty or not df_tea.empty else pd.DataFrame()

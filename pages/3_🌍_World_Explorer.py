@@ -184,7 +184,8 @@ try:
             box-shadow: 0 3px 6px rgba(0,0,0,0.35);
             cursor: pointer;
             position: relative;
-        ">
+            transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
+        " onmouseover="this.style.transform='scale(1.22)'; if(this.parentElement) this.parentElement.style.zIndex='999999';" onmouseout="this.style.transform='scale(1)'; if(this.parentElement) this.parentElement.style.zIndex='';" title="{user_name}: {count} drinks">
             {symbol}
             <span style="
                 position: absolute;
@@ -198,12 +199,19 @@ try:
                 font-weight: 700;
                 border: 1px solid white;
                 line-height: 1.2;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.4);
             ">{count}</span>
         </div>
         """
         return folium.DivIcon(html=html, icon_size=(32, 32), icon_anchor=(16, 16))
 
-    # Plot city markers
+    city_latest_time = passport.get("city_latest_time", {})
+    city_user_latest_time = passport.get("city_user_latest_time", {})
+    default_ts = pd.Timestamp("2020-01-01", tz="UTC")
+
+    markers_to_plot = []
+
+    # Prepare city markers
     if active_user_filter is None:
         # All Crew Mode: Plot pins for each user who drank in each city
         for (c_code, c_city), user_breakdown in passport.get("city_users_breakdown", {}).items():
@@ -253,12 +261,20 @@ try:
                 </div>
                 """
                 
-                folium.Marker(
-                    location=[pin_lat, pin_lon],
-                    popup=folium.Popup(popup_html, max_width=280),
-                    tooltip=f"{u_name} in {c_city}, {c_info['name']} ({tooltip_detail})",
-                    icon=create_custom_icon(u_name, count=u_cnt, is_home=is_home, drink_filter=drink_type_filter, drink_breakdown=u_breakdown)
-                ).add_to(m)
+                # Fetch latest beverage timestamp for this user in this city
+                u_ts = city_user_latest_time.get((c_code, c_city), {}).get(u_name, city_latest_time.get((c_code, c_city), default_ts))
+
+                markers_to_plot.append({
+                    "lat": pin_lat,
+                    "lon": pin_lon,
+                    "popup": popup_html,
+                    "tooltip": f"{u_name} in {c_city}, {c_info['name']} ({tooltip_detail})",
+                    "user_name": u_name,
+                    "count": u_cnt,
+                    "is_home": is_home,
+                    "drink_breakdown": u_breakdown,
+                    "timestamp": u_ts
+                })
     else:
         # Single User Mode
         u_home_country = get_user_default_country(active_user_filter)
@@ -297,14 +313,42 @@ try:
             </div>
             """
             
-            folium.Marker(
-                location=[c_lat, c_lon],
-                popup=folium.Popup(popup_html, max_width=280),
-                tooltip=f"{active_user_filter} in {c_city}, {c_info['name']} ({tooltip_detail})",
-                icon=create_custom_icon(active_user_filter, count=cnt, is_home=is_home, drink_filter=drink_type_filter, drink_breakdown=u_breakdown)
-            ).add_to(m)
+            c_ts = city_latest_time.get((c_code, c_city), default_ts)
 
-    st_folium(m, width="100%", height=450)
+            markers_to_plot.append({
+                "lat": c_lat,
+                "lon": c_lon,
+                "popup": popup_html,
+                "tooltip": f"{active_user_filter} in {c_city}, {c_info['name']} ({tooltip_detail})",
+                "user_name": active_user_filter,
+                "count": cnt,
+                "is_home": is_home,
+                "drink_breakdown": u_breakdown,
+                "timestamp": c_ts
+            })
+
+    # Sort markers chronologically ascending: older coffees added first, latest added last & given highest z_index_offset
+    markers_to_plot.sort(key=lambda m_item: m_item["timestamp"])
+
+    for rank_idx, pin in enumerate(markers_to_plot):
+        # Calculate positive z_index_offset: latest coffee gets highest z-index
+        z_offset = int(rank_idx * 100 + 10)
+        
+        folium.Marker(
+            location=[pin["lat"], pin["lon"]],
+            popup=folium.Popup(pin["popup"], max_width=280),
+            tooltip=pin["tooltip"],
+            z_index_offset=z_offset,
+            icon=create_custom_icon(
+                pin["user_name"], 
+                count=pin["count"], 
+                is_home=pin["is_home"], 
+                drink_filter=drink_type_filter, 
+                drink_breakdown=pin["drink_breakdown"]
+            )
+        ).add_to(m)
+
+    st_folium(m, width="100%", height=450, returned_objects=[])
 
 except ImportError:
     st.info("💡 Interactive map requires `folium` and `streamlit-folium`. Country statistics and stamps are fully operational below!")

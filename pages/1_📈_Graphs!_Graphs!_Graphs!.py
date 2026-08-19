@@ -149,6 +149,83 @@ else:
 
 st.divider()
 
+# Fragment decorator
+if hasattr(st, "fragment"):
+    fragment_dec = st.fragment
+elif hasattr(st, "experimental_fragment"):
+    fragment_dec = st.experimental_fragment
+else:
+    fragment_dec = lambda f: f
+
+@fragment_dec
+def render_rhythm_tab(df_filtered):
+    r_col1, r_col2 = st.columns(2)
+    with r_col1:
+        with st.container(border=True):
+            st.markdown("#### ⏰ 24-Hour Circadian Brewing Cycle")
+            plot_hourly_distribution(df_filtered)
+    with r_col2:
+        with st.container(border=True):
+            st.markdown("#### 📅 Total Volume by Day of Week")
+            plot_weekday_distribution(df_filtered)
+            
+    with st.container(border=True):
+        avg_mode_col1, avg_mode_col2 = st.columns([2, 3])
+        with avg_mode_col1:
+            st.markdown("#### 📊 Daily Consumption Average")
+        with avg_mode_col2:
+            avg_mode = st.segmented_control(
+                "Average Method", 
+                ["📅 Calendar Normalized (Includes Zero Days)", "⚡ Raw (Active Days Only)"], 
+                default="📅 Calendar Normalized (Includes Zero Days)",
+                key="avg_mode_selector"
+            )
+            if avg_mode is None:
+                avg_mode = "📅 Calendar Normalized (Includes Zero Days)"
+        
+        calc_mode = "raw" if "Raw" in avg_mode else "normalized"
+        if calc_mode == "raw":
+            st.caption("⚡ **Raw Active Average**: Divides total drinks by the number of days you actually logged a beverage.")
+        else:
+            st.caption("📅 **Calendar-Normalized Average**: Divides total drinks by the total calendar days in the selected timeframe (including zero-logging days).")
+            
+        plot_average_weekday_distribution(df_filtered, title="Average Drinks per Weekday", mode=calc_mode)
+
+@fragment_dec
+def render_projections_tab(df_all_dates, chart_users, now):
+    with st.container(border=True):
+        st.markdown("#### 🚀 Predictive Trend Extrapolation")
+        p_time = st.segmented_control("Forecast Horizon", ["This Week", "This Month", "This Year"], default="This Month")
+        if p_time is None:
+            p_time = "This Month"
+            
+        p_start = None
+        p_end = None
+        if p_time == "This Week":
+            p_start = now - pd.to_timedelta(now.dayofweek, unit='D')
+            p_start = p_start.replace(hour=0, minute=0, second=0, microsecond=0)
+            p_end = p_start + pd.Timedelta(days=6, hours=23, minutes=59, seconds=59)
+        elif p_time == "This Month":
+            p_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            next_month = (p_start + pd.DateOffset(months=1))
+            p_end = next_month - pd.Timedelta(seconds=1)
+        elif p_time == "This Year":
+            p_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            p_end = now.replace(month=12, day=31, hour=23, minute=59, second=59)
+            
+        df_proj = df_all_dates[df_all_dates["created_at"] >= p_start].copy()
+        
+        if df_proj.empty:
+            st.info("Not enough data in this period to calculate a forecast.")
+        else:
+            projected_values = plot_cumulative_projections(df_proj, p_start, p_end, chart_users, title=f"Forecast to end of {p_time}")
+            
+            if projected_values:
+                st.markdown(f"**Predicted Total Drinks by end of {p_time}:**")
+                cols = st.columns(len(projected_values))
+                for i, (usr, val) in enumerate(projected_values.items()):
+                    cols[i].metric(usr, f"{int(round(val))} drinks")
+
 # --- 4. Interactive 5-Tab Analytical Suite ---
 if not df_filtered.empty:
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -187,37 +264,7 @@ if not df_filtered.empty:
 
     # --- TAB 2: Rhythm & Peak Hours ---
     with tab2:
-        r_col1, r_col2 = st.columns(2)
-        with r_col1:
-            with st.container(border=True):
-                st.markdown("#### ⏰ 24-Hour Circadian Brewing Cycle")
-                plot_hourly_distribution(df_filtered)
-        with r_col2:
-            with st.container(border=True):
-                st.markdown("#### 📅 Total Volume by Day of Week")
-                plot_weekday_distribution(df_filtered)
-                
-        with st.container(border=True):
-            avg_mode_col1, avg_mode_col2 = st.columns([2, 3])
-            with avg_mode_col1:
-                st.markdown("#### 📊 Daily Consumption Average")
-            with avg_mode_col2:
-                avg_mode = st.segmented_control(
-                    "Average Method", 
-                    ["📅 Calendar Normalized (Includes Zero Days)", "⚡ Raw (Active Days Only)"], 
-                    default="📅 Calendar Normalized (Includes Zero Days)",
-                    key="avg_mode_selector"
-                )
-                if avg_mode is None:
-                    avg_mode = "📅 Calendar Normalized (Includes Zero Days)"
-            
-            calc_mode = "raw" if "Raw" in avg_mode else "normalized"
-            if calc_mode == "raw":
-                st.caption("⚡ **Raw Active Average**: Divides total drinks by the number of days you actually logged a beverage.")
-            else:
-                st.caption("📅 **Calendar-Normalized Average**: Divides total drinks by the total calendar days in the selected timeframe (including zero-logging days).")
-                
-            plot_average_weekday_distribution(df_filtered, title="Average Drinks per Weekday", mode=calc_mode)
+        render_rhythm_tab(df_filtered)
 
     # --- TAB 3: Temperature Duel & Caffeine ---
     with tab3:
@@ -246,38 +293,7 @@ if not df_filtered.empty:
 
     # --- TAB 4: Projections & Milestones ---
     with tab4:
-        with st.container(border=True):
-            st.markdown("#### 🚀 Predictive Trend Extrapolation")
-            p_time = st.segmented_control("Forecast Horizon", ["This Week", "This Month", "This Year"], default="This Month")
-            if p_time is None:
-                p_time = "This Month"
-                
-            p_start = None
-            p_end = None
-            if p_time == "This Week":
-                p_start = now - pd.to_timedelta(now.dayofweek, unit='D')
-                p_start = p_start.replace(hour=0, minute=0, second=0, microsecond=0)
-                p_end = p_start + pd.Timedelta(days=6, hours=23, minutes=59, seconds=59)
-            elif p_time == "This Month":
-                p_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-                next_month = (p_start + pd.DateOffset(months=1))
-                p_end = next_month - pd.Timedelta(seconds=1)
-            elif p_time == "This Year":
-                p_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-                p_end = now.replace(month=12, day=31, hour=23, minute=59, second=59)
-                
-            df_proj = df_all_dates[df_all_dates["created_at"] >= p_start].copy()
-            
-            if df_proj.empty:
-                st.info("Not enough data in this period to calculate a forecast.")
-            else:
-                projected_values = plot_cumulative_projections(df_proj, p_start, p_end, chart_users, title=f"Forecast to end of {p_time}")
-                
-                if projected_values:
-                    st.markdown(f"**Predicted Total Drinks by end of {p_time}:**")
-                    cols = st.columns(len(projected_values))
-                    for i, (usr, val) in enumerate(projected_values.items()):
-                        cols[i].metric(usr, f"{int(round(val))} drinks")
+        render_projections_tab(df_all_dates, chart_users, now)
 
     # --- TAB 5: Travel & Geography ---
     with tab5:
@@ -285,39 +301,39 @@ if not df_filtered.empty:
         st.caption("Geographic distribution of coffee and tea logs across global metropolises.")
         
         travel_logs = []
-        if transactions:
-            # Reconcile with active clicks from data
-            user_click_counts = df_filtered["user_name"].value_counts().to_dict() if not df_filtered.empty else {}
-            drink_txs = [tx for tx in transactions if tx.get("transaction_type") == "drink_log"]
-            
-            # Group by user and take only latest active count
-            txs_by_user = {}
-            for tx in drink_txs:
-                u = tx.get("user_name")
-                if u not in txs_by_user:
-                    txs_by_user[u] = []
-                txs_by_user[u].append(tx)
-                
-            reconciled_txs = []
-            for u, tx_list in txs_by_user.items():
-                max_allowed = user_click_counts.get(u, len(tx_list))
-                sorted_txs = sorted(tx_list, key=lambda x: str(x.get("created_at", "")), reverse=True)[:max_allowed]
-                reconciled_txs.extend(sorted_txs)
-                
-            for tx in reconciled_txs:
-                meta = tx.get("metadata", {})
-                c_code = meta.get("country") if isinstance(meta, dict) else None
-                if c_code and c_code in TRAVEL_COUNTRIES:
-                    u = tx.get("user_name")
+        if not df_filtered.empty and "country" in df_filtered.columns:
+            loc_df = df_filtered[df_filtered["country"].notna()].copy()
+            for _, row in loc_df.iterrows():
+                c_code = row.get("country")
+                if c_code and str(c_code).upper() not in ["PLANE", "FLIGHT", "TRANSIT"] and c_code in TRAVEL_COUNTRIES:
+                    u = str(row.get("user_name", "")).replace(" (coffee)", "").replace(" (tea)", "")
                     info = TRAVEL_COUNTRIES[c_code]
-                    c_city = normalize_city_name(meta.get("city") or get_cities_for_country(c_code)[0])
+                    raw_city = row.get("city") or get_cities_for_country(c_code)[0]
+                    c_city = normalize_city_name(raw_city)
                     travel_logs.append({
                         "User": u,
                         "City": f"{c_city} ({info['flag']})",
                         "Country": f"{info['flag']} {info['name']}",
                         "Continent": info["continent"],
-                        "Drinks": 1
+                        "Drinks": int(row.get("value", 1))
                     })
+                    
+        if not travel_logs and transactions:
+            for tx in transactions:
+                if tx.get("transaction_type") == "drink_log":
+                    meta = tx.get("metadata", {})
+                    c_code = meta.get("country") if isinstance(meta, dict) else None
+                    if c_code and str(c_code).upper() not in ["PLANE", "FLIGHT", "TRANSIT"] and c_code in TRAVEL_COUNTRIES:
+                        u = tx.get("user_name")
+                        info = TRAVEL_COUNTRIES[c_code]
+                        c_city = normalize_city_name(meta.get("city") or get_cities_for_country(c_code)[0])
+                        travel_logs.append({
+                            "User": u,
+                            "City": f"{c_city} ({info['flag']})",
+                            "Country": f"{info['flag']} {info['name']}",
+                            "Continent": info["continent"],
+                            "Drinks": 1
+                        })
         
         if not travel_logs:
             st.info("No travel location logs recorded yet. Once drinks are logged with country & city stamps, geographic breakdown analytics will appear here!")

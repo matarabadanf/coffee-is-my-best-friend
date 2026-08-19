@@ -352,10 +352,16 @@ with tab1:
                     st.markdown(f"{medal} **{em} {r['user']}**: **{r['c_pct']}% C / {r['t_pct']}% T**")
 
 
-# =========================================================================
-# TAB 2: PERSONAL ACHIEVEMENTS
-# =========================================================================
-with tab2:
+# Fragment decorator
+if hasattr(st, "fragment"):
+    fragment_dec = st.fragment
+elif hasattr(st, "experimental_fragment"):
+    fragment_dec = st.experimental_fragment
+else:
+    fragment_dec = lambda f: f
+
+@fragment_dec
+def render_personal_achievements_tab(trophies, users, selected_user):
     st.subheader("🎖️ Individual Milestone Tiers")
     st.caption("Track your personal journey across 10 balanced mastery tracks, tailored for consistency, volume, and brewing style.")
     
@@ -415,11 +421,8 @@ with tab2:
                         else:
                             st.info(f"`{t_cur}/{t['target']}`")
 
-
-# =========================================================================
-# TAB 3: SECRET EASTER EGGS
-# =========================================================================
-with tab3:
+@fragment_dec
+def render_secret_easter_eggs_tab(trophies, users, selected_user):
     st.subheader("🕵️ Secret Easter Eggs & Arcane Feats")
     st.caption("Concealed achievements unlocked only by unearthing peculiar cosmic alignments, rare timing rituals, or alchemical feats.")
     
@@ -456,6 +459,18 @@ with tab3:
                     st.markdown("### 🔒 ??? Arcane Mystery")
                     st.info(f"📜 **Cryptic Riddle:** *\"{feat['hint']}\"*")
                     st.caption("🗝️ *The achievement and its lore remain shrouded in mist until fulfilled.*")
+
+# =========================================================================
+# TAB 2: PERSONAL ACHIEVEMENTS
+# =========================================================================
+with tab2:
+    render_personal_achievements_tab(trophies, users, selected_user)
+
+# =========================================================================
+# TAB 3: SECRET EASTER EGGS
+# =========================================================================
+with tab3:
+    render_secret_easter_eggs_tab(trophies, users, selected_user)
 
 
 # =========================================================================

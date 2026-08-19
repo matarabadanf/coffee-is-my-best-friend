@@ -74,14 +74,9 @@ with col2:
 
 st.write("---")
 
-# Fetch Data
-data = get_data()
-transactions = get_transactions()
-df, df_coffee, df_tea, coffee_scores, tea_scores = process_raw_data(data, users)
-trophies = get_gamification_metrics(df_coffee, df_tea, users)
+# Derived Data
 earned_titles = get_user_titles(selected_user, trophies, return_all=True)
 active_perks = get_active_perks(transactions, users)
-coin_balances = get_coin_balances(df, transactions, users)
 
 st.header("🎨 Appearance")
 with st.container(border=True):

@@ -378,11 +378,21 @@ def handle_drink_log(drink_id, drink_name, temp_name, country_code, city_name):
         st.error(f"Error logging drink: {e}")
 
 # --- 2. Hero Quick-Tap Beverage Section (Coffee & Tea - Hot & Iced) ---
-st.subheader("⚡ Log Your Beverage")
-
-if "coffee_break" in active_perks.get(selected_user, []):
-    st.error("🚫 You are on a mandatory Coffee Break! You cannot log drinks right now.")
+if hasattr(st, "fragment"):
+    fragment_dec = st.fragment
+elif hasattr(st, "experimental_fragment"):
+    fragment_dec = st.experimental_fragment
 else:
+    fragment_dec = lambda f: f
+
+@fragment_dec
+def render_beverage_logging_section(selected_user, active_perks, prefs):
+    st.subheader("⚡ Log Your Beverage")
+
+    if "coffee_break" in active_perks.get(selected_user, []):
+        st.error("🚫 You are on a mandatory Coffee Break! You cannot log drinks right now.")
+        return
+
     # Default location variables
     default_country_code = prefs.get(selected_user, {}).get("default_country", get_user_default_country(selected_user))
     default_city = prefs.get(selected_user, {}).get("default_city", get_user_default_city(selected_user))
@@ -459,6 +469,8 @@ else:
             with t_btn2:
                 if st.button("🧊 Iced Tea", key="btn_iced_tea", use_container_width=True):
                     handle_drink_log(4, "Tea", "Iced", selected_country_code, selected_city)
+
+render_beverage_logging_section(selected_user, active_perks, prefs)
 
 st.divider()
 

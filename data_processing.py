@@ -1,9 +1,10 @@
+import streamlit as st
 import pandas as pd
 from world_data import (
     TRAVEL_COUNTRIES, 
     DEFAULT_COUNTRY, 
     get_user_default_country, 
-    get_user_default_city,
+    get_user_default_city, 
     compute_passport_stats,
     is_coffee_capital
 )
@@ -20,6 +21,7 @@ from gamification import (
     resolve_user_title
 )
 
+@st.cache_data(show_spinner=False)
 def process_raw_data(data, users):
     if not data:
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), {}, {}
@@ -64,6 +66,7 @@ def process_raw_data(data, users):
 
     return df, df_coffee, df_tea, coffee_scores, tea_scores
 
+@st.cache_data(show_spinner=False)
 def get_cumulative_data(data, start_date, end_date, users, freq="D"):
     # 1. Normalize dates to clean midnight intervals so reindex matches resampled timestamps
     start_date = pd.to_datetime(start_date).normalize()
@@ -122,6 +125,7 @@ def get_expense_and_caffeine(coffee_scores, tea_scores):
         
     return metrics
 
+@st.cache_data(show_spinner=False)
 def get_coin_balances(df, transactions, users):
     balances = {u: 0 for u in users}
     
@@ -141,6 +145,7 @@ def get_coin_balances(df, transactions, users):
                     
     return balances
 
+@st.cache_data(show_spinner=False)
 def get_active_perks(transactions, users):
     perks = {u: [] for u in users}
     if not transactions:
@@ -172,6 +177,7 @@ ALL_VALID_THEMES = [
     "Velvet Mocha (Cocoa)"
 ]
 
+@st.cache_data(show_spinner=False)
 def get_unlocked_themes(transactions, user):
     """Returns list of themes unlocked by a specific user (always includes base themes)."""
     unlocked = set(BASE_THEMES)
@@ -194,6 +200,7 @@ def get_unlocked_themes(transactions, user):
     # Return in standardized order
     return [t for t in ALL_VALID_THEMES if t in unlocked]
 
+@st.cache_data(show_spinner=False)
 def get_user_preferences(transactions=None, users=None, db_preferences=None):
     if db_preferences is None:
         try:

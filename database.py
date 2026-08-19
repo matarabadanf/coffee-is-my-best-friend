@@ -12,6 +12,22 @@ def get_supabase_client() -> Client:
         st.stop()
     return create_client(url, key)
 
+def clear_all_db_caches():
+    """Explicitly clears all in-memory database query caches."""
+    try:
+        get_data.clear()
+    except Exception:
+        pass
+    try:
+        get_transactions.clear()
+    except Exception:
+        pass
+    try:
+        get_preferences.clear()
+    except Exception:
+        pass
+
+@st.cache_data(ttl=60, show_spinner=False)
 def get_data():
     supabase = get_supabase_client()
     try:
@@ -33,6 +49,7 @@ def get_data():
 
 def insert_click(user: str, value: int, drink_id: int, country: str = None, city: str = None):
     supabase = get_supabase_client()
+    result = None
     
     # 1. Preferred modern format: single JSON column "location" (e.g. {"country": "ES", "city": "Alcobendas"})
     if country or city:
@@ -48,31 +65,42 @@ def insert_click(user: str, value: int, drink_id: int, country: str = None, city
                 "drink_id": drink_id,
                 "location": loc_json
             }
-            return supabase.table("clicks").insert(event_data_json).execute()
+            result = supabase.table("clicks").insert(event_data_json).execute()
         except Exception:
             pass
             
         # Try inserting with separate columns 'country' and 'city'
-        try:
-            event_data_cols = {
-                "user_name": user,
-                "value": value,
-                "drink_id": drink_id,
-                "country": country,
-                "city": city
-            }
-            return supabase.table("clicks").insert(event_data_cols).execute()
-        except Exception:
-            pass
+        if result is None:
+            try:
+                event_data_cols = {
+                    "user_name": user,
+                    "value": value,
+                    "drink_id": drink_id,
+                    "country": country,
+                    "city": city
+                }
+                result = supabase.table("clicks").insert(event_data_cols).execute()
+            except Exception:
+                pass
 
     # 3. Base fallback without location columns
-    fallback_data = {
-        "user_name": user,
-        "value": value,
-        "drink_id": drink_id
-    }
-    return supabase.table("clicks").insert(fallback_data).execute()
+    if result is None:
+        fallback_data = {
+            "user_name": user,
+            "value": value,
+            "drink_id": drink_id
+        }
+        result = supabase.table("clicks").insert(fallback_data).execute()
 
+    # Clear cached query data so fresh clicks appear immediately
+    try:
+        get_data.clear()
+    except Exception:
+        pass
+
+    return result
+
+@st.cache_data(ttl=60, show_spinner=False)
 def get_transactions():
     supabase = get_supabase_client()
     try:
@@ -102,8 +130,14 @@ def insert_transaction(user: str, amount: int, transaction_type: str, metadata: 
         "transaction_type": transaction_type,
         "metadata": metadata
     }
-    return supabase.table("coin_transactions").insert(event_data).execute()
+    result = supabase.table("coin_transactions").insert(event_data).execute()
+    try:
+        get_transactions.clear()
+    except Exception:
+        pass
+    return result
 
+@st.cache_data(ttl=60, show_spinner=False)
 def get_preferences():
     """Fetches all rows from the dedicated user_preferences table."""
     supabase = get_supabase_client()
@@ -133,13 +167,26 @@ def save_user_preference(user_name: str, updates: dict):
             if meta_updates:
                 cur_meta.update(meta_updates)
                 col_updates["metadata"] = cur_meta
-            return supabase.table("user_preferences").update(col_updates).eq("user_name", user_name).execute()
+            res = supabase.table("user_preferences").update(col_updates).eq("user_name", user_name).execute()
         else:
             record = {"user_name": user_name, **col_updates}
             if meta_updates:
                 record["metadata"] = meta_updates
-            return supabase.table("user_preferences").insert(record).execute()
+            res = supabase.table("user_preferences").insert(record).execute()
+
+        try:
+            get_preferences.clear()
+            get_transactions.clear()
+        except Exception:
+            pass
+        return res
     except Exception:
         # Fallback to coin_transactions if user_preferences table is not created yet
-        return insert_transaction(user_name, 0, "preference", updates)
+        res = insert_transaction(user_name, 0, "preference", updates)
+        try:
+            get_preferences.clear()
+            get_transactions.clear()
+        except Exception:
+            pass
+        return res
 

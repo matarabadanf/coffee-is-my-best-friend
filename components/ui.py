@@ -698,17 +698,44 @@ def inject_custom_css(theme="Latte (Light)", ui_style="Modern Flat", user=None, 
         padding-top: 10px;
     }}
 
-    /* Tabs */
+    /* Ultra-smooth Tabs & Transitions */
+    .stTabs [data-baseweb="tab-list"] {{
+        gap: 6px !important;
+        border-bottom: 2px solid var(--border-color) !important;
+        background: transparent !important;
+    }}
     .stTabs [data-baseweb="tab"] {{
         color: var(--text-muted) !important;
         font-weight: 600;
-        font-size: 0.95rem;
-        padding: 0.6rem 1.2rem !important;
+        font-size: 0.92rem;
+        padding: 0.55rem 1.1rem !important;
+        border-radius: 12px 12px 0 0 !important;
+        transition: color 0.15s ease, background-color 0.15s ease !important;
+        border: none !important;
+    }}
+    .stTabs [data-baseweb="tab"]:hover {{
+        background-color: rgba(128, 128, 128, 0.08) !important;
+        color: var(--text-color) !important;
     }}
     .stTabs [data-baseweb="tab"][aria-selected="true"] {{
         color: var(--text-color) !important;
         font-weight: 800;
-        border-bottom-color: var(--accent-color) !important;
+        border-bottom: 3px solid var(--accent-color) !important;
+        background-color: rgba(226, 74, 0, 0.06) !important;
+    }}
+    div[data-baseweb="tab-panel"] {{
+        padding-top: 1rem !important;
+        animation: tabFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }}
+    @keyframes tabFadeIn {{
+        from {{
+            opacity: 0.88;
+            transform: translateY(3px);
+        }}
+        to {{
+            opacity: 1;
+            transform: translateY(0);
+        }}
     }}
 
     /* Chart Background Transparency */

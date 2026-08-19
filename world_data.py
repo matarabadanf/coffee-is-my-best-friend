@@ -618,6 +618,8 @@ def compute_passport_stats(
     country_cities_map: dict[str, set[str]] = {}
     capital_cities_visited = set()
     coffee_capitals_visited = set()
+    city_latest_time: dict[tuple[str, str], pd.Timestamp] = {}
+    city_user_latest_time: dict[tuple[str, str], dict[str, pd.Timestamp]] = {}
 
     is_all_users = (user is None or user == "All" or user == "All Crew")
     def_country = default_country or (get_user_default_country(user) if not is_all_users else DEFAULT_COUNTRY)
@@ -724,10 +726,28 @@ def compute_passport_stats(
                 city_key = (country_code, norm_city)
                 city_counts[city_key] = city_counts.get(city_key, 0) + 1
                 
+                # Timestamp tracking for latest coffee / drink
+                t_raw = tx.get("created_at")
+                if t_raw is not None:
+                    try:
+                        t_dt = pd.to_datetime(t_raw, utc=True)
+                    except Exception:
+                        t_dt = pd.Timestamp.now(tz="UTC")
+                else:
+                    t_dt = pd.Timestamp.now(tz="UTC")
+
+                if city_key not in city_latest_time or t_dt > city_latest_time[city_key]:
+                    city_latest_time[city_key] = t_dt
+
                 if city_key not in city_users_breakdown:
                     city_users_breakdown[city_key] = {}
                 city_users_breakdown[city_key][tx_user] = city_users_breakdown[city_key].get(tx_user, 0) + 1
                 
+                if city_key not in city_user_latest_time:
+                    city_user_latest_time[city_key] = {}
+                if tx_user not in city_user_latest_time[city_key] or t_dt > city_user_latest_time[city_key][tx_user]:
+                    city_user_latest_time[city_key][tx_user] = t_dt
+
                 # Detailed coffee vs tea breakdown per city and per user
                 if city_key not in city_drink_types:
                     city_drink_types[city_key] = {"coffee": 0, "tea": 0}
@@ -784,6 +804,8 @@ def compute_passport_stats(
         "city_users_breakdown": city_users_breakdown,
         "city_drink_types": city_drink_types,
         "city_user_drink_types": city_user_drink_types,
+        "city_latest_time": city_latest_time,
+        "city_user_latest_time": city_user_latest_time,
         "country_cities_map": country_cities_map,
         "capital_cities_visited": capital_cities_visited,
         "coffee_capitals_visited": coffee_capitals_visited,

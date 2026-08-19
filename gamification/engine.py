@@ -1,9 +1,11 @@
+import streamlit as st
 import pandas as pd
 import random
 from world_data import compute_passport_stats, is_coffee_capital
 from gamification.achievements import ACHIEVEMENT_TIERS, SECRET_FEATS, ACHIEVEMENTS_START_DATE
 from gamification.hall_of_fame import compute_monarch_hall_of_fame, compute_all_trophy_hall_of_fames
 
+@st.cache_data(show_spinner=False)
 def get_gamification_metrics(df_coffee, df_tea, users, transactions=None, achievements_start_date=ACHIEVEMENTS_START_DATE):
     """
     Computes all gamification metrics, monarch thrones, personal milestone tiers, and secret feats.
