@@ -230,7 +230,7 @@ if now < unlock_time:
 
 # --- 📜 COMPREHENSIVE DROP 1 & UI 2.0 PATCH NOTES ---
 patch_expander_title = "🌍 **Drop 1 Patch Notes — World Explorer & UI 2.0 Major Update (Preview Details)**" if now < unlock_time else "🎉 **Drop 1 Patch Notes — World Explorer & UI 2.0 is LIVE! (Tap to expand)**"
-with st.expander(patch_expander_title, expanded=True):
+with st.expander(patch_expander_title, expanded=False):
     pn1, pn2, pn3 = st.columns(3)
     with pn1:
         st.markdown("""
